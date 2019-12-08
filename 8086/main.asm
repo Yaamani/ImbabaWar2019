@@ -17,14 +17,23 @@ player2bullets dw 0
 player2bulletx dw 200 dup(0)
 player2bullety dw 200 dup(0)
 
-firsthealthbar  dw 10 , 15 , 35
-secondhealthbar dw 165 , 15 , 35
+
+laser_bar_recover_delay equ 33
+barrier_bar_recover_delay equ 33
+
+firsthealthbar  dw 10 , 10 , 35
+secondhealthbar dw 170 , 10 , 35
 ;**********************
-firstlaserbar   dw 55 , 15 , 20
+firstlaserrecoverdelay db laser_bar_recover_delay
+firstlaserbar   dw 70 , 15 , 20
+secondlaserrecoverdelay db laser_bar_recover_delay
+secondlaserbar   dw 230 , 15 , 20
 ;**********************
-secondlaserbar   dw 210 , 15 , 20
-firstbarrierbar  dw 100 , 15 , 35
-secondbarrierbar dw 255 , 15 , 35
+firstbarrierrecoverdelay db barrier_bar_recover_delay
+firstbarrierbar  dw 115 , 15 , 35
+secondbarrierrecoverdelay db barrier_bar_recover_delay
+secondbarrierbar dw 275 , 15 , 35
+
 temp1 dw ?
 temp2 dw ?
 .code         
@@ -78,10 +87,37 @@ yamany:
 ;jb skip
 
 
-mov si , offset firstlaserbar
-incprogbar
+;drawsolidrect
+
+;mov si , offset firstlaserbar
+;incprogbar
+;mov si , offset secondlaserbar
+;incprogbar
 ;mov si , offset firstlaserbar
 ;decprogbar
+mov si , offset firsthealthbar
+drawprogbar 20, 02h, 04h
+mov si , offset secondhealthbar
+drawprogbar 20, 02h, 04h
+
+mov si , offset firstlaserbar
+drawprogbar 10, 1110b, 04h
+mov si , offset secondlaserbar
+drawprogbar 10, 1110b, 04h
+
+mov si , offset firstbarrierbar
+drawprogbar 10, 1000b, 04h
+mov si , offset secondbarrierbar
+drawprogbar 10, 1000b, 04h
+
+call firstlaserrecoverdelay_proc
+
+call secondlaserrecoverdelay_proc
+
+call firstbarrierrecoverdelay_proc
+
+call secondbarrierrecoverdelay_proc
+
 
 mov di , offset player1
 drawrect [di] , [di+2] , 20 , 15 , 05h ;1st player
@@ -101,7 +137,7 @@ drawrect [di], [di+2] , 20 , 15 , 05h ;2nd player
 ;MOV     AH, 86H
 ;INT     15H
 
- movplayer2
+movplayer2
 
 
 ;ending:
@@ -113,7 +149,7 @@ drawrect [di], [di+2] , 20 , 15 , 05h ;2nd player
 
 ;drawrect 250, 100 , 20 , 15 , 05h ;2nd player   
 
-     push ax
+    push ax
     push cx
     push dx
     
@@ -497,7 +533,7 @@ key_listener proc
     jne dontfire1
     
     cmp dx,10          ;fire rate delay 
-    jb nothing_pressed  ;
+    jb dontfire1  ;
     
     call firebullet1
     ;skip:
@@ -508,18 +544,145 @@ key_listener proc
     jne dontfire2
     
     cmp bx,10          ;fire rate 
-    jb nothing_pressed  ;
+    jb dontfire2  ;
         
     call firebullet2
 
     
     dontfire2:
-    ;--------------------------check Laser------------------------    
+    ;--------------------------check Laser------------------------
+
+    cmp al, ';'
+    jne dontlaser1
     
     
-    nothing_pressed:
+    call laser1
+
+    dontlaser1:
+    cmp al, 'e'
+    jne dontlaser2
+
+    call laser2
+    dontlaser2:
+
+    ;--------------------------check Barrier------------------------
+
+    cmp al, 'k'
+    jne dontbarrier1
+    
+    
+    call barrier1
+
+    dontbarrier1:
+    cmp al, 'q'
+    jne dontbarrier2
+
+    call barrier2
+    dontbarrier2:
+    
+    ;nothing_pressed:
 
     mov al,0
 ret
 key_listener endp
+;***************************
+laser1 proc 
+mov si , offset secondlaserbar
+decprogbar 8
+ret
+laser1 endp
+
+;***************************
+laser2 proc 
+mov si , offset firstlaserbar
+decprogbar 8
+ret
+laser2 endp
+
+;***************************
+barrier1 proc 
+mov si , offset secondbarrierbar
+decprogbar 8
+ret
+barrier1 endp
+
+;***************************
+barrier2 proc 
+mov si , offset firstbarrierbar
+decprogbar 8
+ret
+barrier2 endp
+
+;***************************
+firstlaserrecoverdelay_proc proc
+push ax
+mov al, 1
+sub firstlaserrecoverdelay, al
+cmp firstlaserrecoverdelay, al
+pop ax
+jbe inclaser1
+jmp dont_inc_laserbar1
+
+inclaser1: mov si , offset firstlaserbar
+incprogbar 1
+mov firstlaserrecoverdelay, laser_bar_recover_delay
+
+dont_inc_laserbar1:
+ret
+firstlaserrecoverdelay_proc endp
+
+;***************************
+secondlaserrecoverdelay_proc proc
+push ax
+mov al, 1
+sub secondlaserrecoverdelay, al
+cmp secondlaserrecoverdelay, al
+pop ax
+jbe inclaser2
+jmp dont_inc_laserbar2
+
+inclaser2: mov si , offset secondlaserbar
+incprogbar 1
+mov secondlaserrecoverdelay, laser_bar_recover_delay
+
+dont_inc_laserbar2:
+ret
+secondlaserrecoverdelay_proc endp
+
+;***************************
+firstbarrierrecoverdelay_proc proc
+push ax
+mov al, 1
+sub firstbarrierrecoverdelay, al
+cmp firstbarrierrecoverdelay, al
+pop ax
+jbe incbarrier1
+jmp dont_inc_barrierbar1
+
+incbarrier1: mov si , offset firstbarrierbar
+incprogbar 1
+mov firstbarrierrecoverdelay, barrier_bar_recover_delay
+
+dont_inc_barrierbar1:
+ret
+firstbarrierrecoverdelay_proc endp
+
+;***************************
+secondbarrierrecoverdelay_proc proc
+push ax
+mov al, 1
+sub secondbarrierrecoverdelay, al
+cmp secondbarrierrecoverdelay, al
+pop ax
+jbe incbarrier2
+jmp dont_inc_barrierbar2
+
+incbarrier2: mov si , offset secondbarrierbar
+incprogbar 1
+mov secondbarrierrecoverdelay, barrier_bar_recover_delay
+
+dont_inc_barrierbar2:
+ret
+secondbarrierrecoverdelay_proc endp
+
 end main

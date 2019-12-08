@@ -91,15 +91,15 @@ int 10h
 
 endm    mainmenu
 ;---------draw prog bar----------
-drawprogbar macro
+drawprogbar macro height, fg_c, bg_c
 mov cx , 35
 sub cx , [si+4]
 mov ax , [si]
 add ax , [si+4]
 mov temp1 , ax
 mov temp2 , cx
-drawsolidrect [si] , [si+2] , [si+4] , 20 , 02h
-drawsolidrect temp1 , [si+2] , temp2 , 20 , 04h
+drawsolidrect [si] , [si+2] , [si+4] , height , fg_c
+drawsolidrect temp1 , [si+2] , temp2 , height , bg_c
 endm
 ;---------inc prog bar----------
 incprogbar macro amount
