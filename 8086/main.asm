@@ -74,10 +74,13 @@ mov cx,0
 
 yamany:
 
-cmp cx,0ff0h 
-jb skip
+;cmp cx,0ff0h 
+;jb skip
 
+mov di , offset player1
+drawrect [di] , [di+2] , 20 , 15 , 05h ;1st player
 
+movplayer1
 ;drawrect 159 , 0 , 1 , 200 , 06h
 
 
@@ -140,9 +143,9 @@ pop ax
     jb nothing_pressed  ;
     
     call firebullet1
-    skip:
-    cmp cx,0fff0h
-    jb skip2
+    ;skip:
+    ;cmp cx,0fff0h
+    ;jb skip2
     dontfire1:
     cmp al,'l'
     jne dontfire2
@@ -164,8 +167,8 @@ pop ax
     inc dx
     inc bx
     
-    skip2:
-        inc cx
+    ;skip2:
+    ;    inc cx
 jmp yamany
 
 hlt

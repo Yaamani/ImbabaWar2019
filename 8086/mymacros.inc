@@ -325,3 +325,79 @@ pop bx
 pop ax
 
 endm
+
+Movplayer1	Macro
+local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
+mov si , offset player1
+CHECK:  
+		mov ah,1
+        int 16h
+        jz bridgetoend
+		mov ah,0
+        int 16h
+		cmp ah , 48h
+		jz UP
+		cmp ah , 50h
+		jz bridgetodown
+		cmp ah , 4dh
+		jz bridgetoright
+		cmp ah , 4bh
+		jnz bridgetoend
+		left:mov bx , 1
+		sub [si] , bx
+		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		jmp toend
+		bridgetoend: jmp toend
+		bridgetoright: jmp right
+		bridgetodown: jmp down
+		UP:mov bx , 1
+		sub [si + 2] , bx
+		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		jmp toend
+		down:mov bx , 1
+		add [si + 2] , bx
+		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		jmp toend
+		right:mov bx , 1
+		add [si] , bx
+		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		toend:
+
+endm Movplayer1
+;*****************************
+Movplayer2	Macro
+local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
+mov di , offset player2
+CHECK:  
+		mov ah,1
+        int 16h
+        jz bridgetoend
+		cmp al , 77h
+		jz UP
+		cmp al , 73h
+		jz bridgetodown
+		cmp al , 64h
+		jz bridgetoright
+		cmp al , 61h
+		jnz bridgetoend
+		left:mov bx , 1
+		sub [di] , bx
+		drawrect  [di] , [di+2] , 20 , 15 , 05h
+		jmp toend
+		bridgetoend: jmp toend
+		bridgetoright: jmp right
+		bridgetodown: jmp down
+		UP:mov bx , 1
+		sub [di + 2] , bx
+		drawrect  [di] , [di+2] , 20 , 15 , 05h
+		jmp toend
+		down:mov bx , 1
+		add [di + 2] , bx
+		drawrect  [di] , [di+2] , 20 , 15 , 03h
+		jmp toend
+		right:mov bx , 1
+		add [di] , bx
+		drawrect  [di] , [di+2] , 20 , 15 , 02h
+		toend:
+
+endm Movplayer2
