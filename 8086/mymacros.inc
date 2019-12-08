@@ -90,32 +90,44 @@ mov bl,028h        ;red (c) on white(f) background
 int 10h
 
 endm    mainmenu
-;---------inc prog bar----------
-IncProgbar macro
-local toend , tofull
-push ax
-push cx
+;---------draw prog bar----------
+drawprogbar macro
 mov cx , 35
-mov ax , 1
-add [si+4] , ax
-cmp [si+4] , cx
-jae tofull
-
 sub cx , [si+4]
 mov ax , [si]
 add ax , [si+4]
 mov temp1 , ax
 mov temp2 , cx
-;pop cx
-;pop ax
 drawsolidrect [si] , [si+2] , [si+4] , 20 , 02h
 drawsolidrect temp1 , [si+2] , temp2 , 20 , 04h
+endm
+;---------inc prog bar----------
+incprogbar macro amount
+local toend , tofull
+push ax
+push cx
+mov cx , 35
+mov ax , amount
+add [si+4] , ax
+cmp [si+4] , cx
+jae tofull
+
+;sub cx , [si+4]
+;mov ax , [si]
+;add ax , [si+4]
+;mov temp1 , ax
+;mov temp2 , cx
+
+;pop cx
+;pop ax
+;drawsolidrect [si] , [si+2] , [si+4] , 20 , 02h
+;drawsolidrect temp1 , [si+2] , temp2 , 20 , 04h
 jmp toend
 tofull:
 ;pop cx
 ;pop ax
 mov [si+4] , cx
-drawsolidrect [si] , [si+2] , [si+4] , 20 , 02h 
+;drawsolidrect [si] , [si+2] , [si+4] , 20 , 02h 
 
 
 
@@ -127,30 +139,30 @@ pop cx
 pop ax
 endm    IncProgbar
 ;---------dec prog bar----------
-decProgbar macro
+decProgbar macro amount
 local toend , dead
 push ax
 push cx
 mov cx , 250
-mov ax , 1
+mov ax , amount
 sub [si+4] , ax
 cmp [si+4] , cx
 jae dead
 
-mov cx, 35
-sub cx , [si+4]
-mov ax , [si]
-add ax , [si+4]
-mov temp1 , ax
-mov temp2 , cx
+;mov cx, 35
+;sub cx , [si+4]
+;mov ax , [si]
+;add ax , [si+4]
+;mov temp1 , ax
+;mov temp2 , cx
 
-drawsolidrect [si] , [si+2] , [si+4] , 20 , 02h
-drawsolidrect temp1 , [si+2] , temp2 , 20 , 04h
+;drawsolidrect [si] , [si+2] , [si+4] , 20 , 02h
+;drawsolidrect temp1 , [si+2] , temp2 , 20 , 04h
 jmp toend
 dead:
 mov cx, 1
 mov [si+4], cx
-drawsolidrect [si] , [si+2] , 35 , 20 , 04h 
+;drawsolidrect [si] , [si+2] , 35 , 20 , 04h 
 
 
 
