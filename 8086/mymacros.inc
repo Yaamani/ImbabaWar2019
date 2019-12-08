@@ -325,14 +325,11 @@ pop bx
 pop ax
 
 endm
-
+;*****************************
 Movplayer1	Macro
 local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
-mov si , offset player1
-CHECK:  
-		mov ah,1
-        int 16h
-        jz bridgetoend
+mov si , offset player2
+
 		mov ah,0
         int 16h
 		cmp ah , 48h
@@ -364,14 +361,10 @@ CHECK:
 		toend:
 
 endm Movplayer1
-;*****************************
+;-------------------------------------------------------------------
 Movplayer2	Macro
 local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
-mov di , offset player2
-CHECK:  
-		mov ah,1
-        int 16h
-        jz bridgetoend
+mov di , offset player1
 		cmp al , 77h
 		jz UP
 		cmp al , 73h

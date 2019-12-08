@@ -79,10 +79,26 @@ yamany:
 
 mov di , offset player1
 drawrect [di] , [di+2] , 20 , 15 , 05h ;1st player
-
-movplayer1
+;
+;movplayer1
 ;drawrect 159 , 0 , 1 , 200 , 06h
 
+mov di , offset player2
+drawrect [di], [di+2] , 20 , 15 , 05h ;2nd player
+
+;mov ah,1
+;int 16h
+;jz ending
+
+;MOV     CX, 0H
+;MOV     DX, 6000H
+;MOV     AH, 86H
+;INT     15H
+
+ movplayer2
+
+
+;ending:
 
 
 ;drawrect 70 , 100 , 20 , 15 , 05h ;1st player
@@ -128,40 +144,42 @@ pop ax
     call player2bullets_problem
     
     
-    mov ah,1
-    int 16h
-    
-    jz nothing_pressed
-        
-    mov ah,07
-    int 21h
-    
-    cmp al,'f'
-    jne dontfire1
-    
-    cmp dx,10          ;fire rate delay 
-    jb nothing_pressed  ;
-    
-    call firebullet1
-    ;skip:
-    ;cmp cx,0fff0h
-    ;jb skip2
-    dontfire1:
-    cmp al,'l'
-    jne dontfire2
-    
-    cmp bx,10          ;fire rate 
-    jb nothing_pressed  ;
-        
-    call firebullet2
-
-    
-    dontfire2:
-    
-    
-    nothing_pressed:
+    ;mov ah,1
+    ;int 16h
+    ;
+    ;jz nothing_pressed
+    ;    
+    ;mov ah,07
+    ;int 21h
+    ;
+    ;cmp al,'f'
+    ;jne dontfire1
+    ;
+    ;cmp dx,10          ;fire rate delay 
+    ;jb nothing_pressed  ;
+    ;
+    ;call firebullet1
+    ;;skip:
+    ;;cmp cx,0fff0h
+    ;;jb skip2
+    ;dontfire1:
+    ;cmp al,'l'
+    ;jne dontfire2
+    ;
+    ;cmp bx,10          ;fire rate 
+    ;jb nothing_pressed  ;
+    ;    
+    ;call firebullet2
+;
+    ;
+    ;dontfire2:
+    ;
+    ;
+    ;nothing_pressed:
    
     
+    call key_listner
+
     mov cx,0
     
     inc dx
@@ -428,4 +446,72 @@ player2bullets_problem endp
 
 ;***************************
    
+key_listner proc
+    mov ah,1
+    int 16h
+    
+    jnz exist
+    ret
+    exist:
+        
+    mov ah,0
+    int 16h
+    cmp al,'a'
+    je yes_player2
+    cmp al,'w'
+    je yes_player2
+    cmp al,'s'
+    je yes_player2
+    cmp al,'d'
+    je yes_player2
+    
+    jmp no_player2
+    yes_player2:
+    movplayer2
+    no_player2:
+    ;-----------------------check player 1--------------------
+    cmp ah,48h
+    je yes_player1
+    cmp ah,50h
+    je yes_player1
+    cmp ah,4bh
+    je yes_player1
+    cmp ah,4dh
+    je yes_player1
+    
+    jmp no_player1
+    yes_player1:
+    movplayer1
+    no_player1:
+    ;--------------------------check fire------------------------    
+
+
+    cmp al,'f'
+    jne dontfire1
+    
+    cmp dx,10          ;fire rate delay 
+    jb nothing_pressed  ;
+    
+    call firebullet1
+    ;skip:
+    ;cmp cx,0fff0h
+    ;jb skip2
+    dontfire1:
+    cmp al,'l'
+    jne dontfire2
+    
+    cmp bx,10          ;fire rate 
+    jb nothing_pressed  ;
+        
+    call firebullet2
+
+    
+    dontfire2:
+    
+    
+    nothing_pressed:
+
+    mov al,0
+ret
+key_listner endp
 end main
