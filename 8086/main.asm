@@ -120,7 +120,10 @@ drawrect [di], [di+2] , 20 , 15 , 05h ;2nd player
     
     loop l99
     ;-----------------------delay-----------------
-    
+    MOV     CX, 0H
+    MOV     DX, 6000H
+    MOV     AH, 86H
+    INT     15H
     ; ----------------------- clear screen -------------------------
     mov ax,0600h  
     mov bh,0

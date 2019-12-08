@@ -330,8 +330,8 @@ Movplayer1	Macro
 local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
 mov si , offset player2
 
-		mov ah,0
-        int 16h
+		;mov ah,0
+        ;int 16h
 		cmp ah , 48h
 		jz UP
 		cmp ah , 50h
