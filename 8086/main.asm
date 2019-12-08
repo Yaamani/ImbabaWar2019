@@ -77,6 +77,12 @@ yamany:
 ;cmp cx,0ff0h 
 ;jb skip
 
+
+mov si , offset firstlaserbar
+incprogbar
+;mov si , offset firstlaserbar
+;decprogbar
+
 mov di , offset player1
 drawrect [di] , [di+2] , 20 , 15 , 05h ;1st player
 ;
@@ -181,7 +187,7 @@ pop ax
     ;nothing_pressed:
    
     
-    call key_listner
+    call key_listener
 
     mov cx,0
     
@@ -449,16 +455,16 @@ player2bullets_problem endp
 
 ;***************************
    
-key_listner proc
+key_listener proc
     mov ah,1
     int 16h
     
     jnz exist
     ret
     exist:
-        
     mov ah,0
     int 16h
+    ;-----------------------check player 2 movement--------------------
     cmp al,'a'
     je yes_player2
     cmp al,'w'
@@ -472,7 +478,7 @@ key_listner proc
     yes_player2:
     movplayer2
     no_player2:
-    ;-----------------------check player 1--------------------
+    ;-----------------------check player 1 movement--------------------
     cmp ah,48h
     je yes_player1
     cmp ah,50h
@@ -486,9 +492,7 @@ key_listner proc
     yes_player1:
     movplayer1
     no_player1:
-    ;--------------------------check fire------------------------    
-
-
+    ;--------------------------check Bullets------------------------    
     cmp al,'f'
     jne dontfire1
     
@@ -510,11 +514,12 @@ key_listner proc
 
     
     dontfire2:
+    ;--------------------------check Laser------------------------    
     
     
     nothing_pressed:
 
     mov al,0
 ret
-key_listner endp
+key_listener endp
 end main
