@@ -1,7 +1,7 @@
 ;-----------------macros------
 showmessage macro mymessage
             mov ah,9h
-            mov cx,offset mymessage
+            mov dx,offset mymessage
             int 21h
 endm showmessage              
 ;------------draw rect-----------
@@ -11,6 +11,7 @@ drawrect macro x,y,l,w,c		;drawRect ax , cx , bx , 20 , 02h ;1st prog bar health
     push bx
     push dx
     
+
 
     mov bx , x
     add bx , l
@@ -71,8 +72,49 @@ drawsolidrect macro x,y,l,w,c
     pop bx
     pop ax
 endm    drawsolidrect
+;----------Intro menu--------------
+intromenu macro mymessage
+showmessage mymessage
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,32h        ;letter 2
+mov cx,1h         ;1 times
+mov bl,028h        ;green048 (9) on white(f) background
+int 10h
+MOV     CX, 1AH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+INT     15H	 
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,30h        ;letter 0
+mov cx,1h         ;1 times
+mov bl,028h        ;red (0) on white(f) background
+int 10h
+MOV     CX, 1AH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+INT     15H	
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,31h        ;letter p
+mov cx,1h         ;1 times
+mov bl,028h        ;green048 (9) on white(f) background
+int 10h
+MOV     CX, 1AH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+INT     15H	 
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,39h        ;letter c
+mov cx,1h         ;1 times
+mov bl,028h        ;red (c) on white(f) background
+int 10h
+endm    intromenu               
 ;----------main menu--------------
 mainmenu macro mymessage,fitmess,secmess
+
 showmessage mymessage
 showmessage fitmess
 mov ah,9          ;display
@@ -371,7 +413,7 @@ mov si , offset player2
 		bridgetoright: jmp right
 		bridgetodown: jmp down
 		UP:mov bx , playerstep
-		sub [si + 2] , bx
+        sub [si + 2] , bx
 		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
 		down:mov bx , playerstep

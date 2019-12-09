@@ -2,9 +2,13 @@ include mymacros.inc
 .model small
 .stack 64
 .data
-mes db 10,13,10,13,9,9,'main menu','$' 
+intromessage db 10,13,10,13,10,13,10,13,10,13,9,'     EMBABA WAR  ','$' ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+mes db 10,13,10,13,9,9,'main menu','$'
+;infomessage1 db 10,13,9,9,'Info menu',10,13,'Player1: UP:W',9,'Down:S',9,'Right:D',9,'fire:f','$'
+;infomessage2 db 'Player2: UP:uparrow',9,'Down:downarrow',9,'Right:rightarrow',9,'Left:leftarrow',9,'fire:l','$'
 fitmess db 10,13,10,13,10,13,9,'   start play press ','$'
 secmess db 10,13,10,13,10,13,10,13,9,'   start chat press ','$'
+;guidemess db 10,13,10,13,10,13,10,13,9,'   Game INFO press ','$'
 
 player1 dw 70 , 100
 player2 dw 250 , 100
@@ -66,20 +70,56 @@ temp2 dw ?
 .code         
 main proc far            
 mov ax,@data
-mov ds,ax 
+mov ds,ax
 
 ;********video mode********
 mov ax,13h
 int 10h
+;*********intro message****************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+intromenu intromessage				   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     CX, 1fH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+INT     15H							   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;********clear screen******************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    mov ax,0600h					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    mov bh,0						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    mov cx,0						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    mov dx,184fh					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    int 10h 						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+lbl:
+;push bx
+;push ax
+mov bx,offset firsthealthbar
+add bx,4
+mov ax,35
+mov [bx],ax
+
+mov bx,offset secondhealthbar
+add bx,4
+mov ax,35
+mov [bx],ax
+
+mov bx,0
+mov [player1bullets],bx ;model small problem
+mov [player2bullets],bx
+
+
+;player1 dw 70 , 100
+;player2 dw 250 , 100
+;pop ax
+;pop bx
 
 ;********main menu mode********
 mainmenu mes,fitmess,secmess
 
 ;-------key pressed---------
+onlyp:
 mov ah,0
 int 16h   ;get key pressed (wait for a key-ah:scancode,al:ascii)  
-cmp al , 50h
-
+cmp al , 'p'
+jne onlyP
 ;********clear screen******************
     mov ax,0600h
     mov bh,0
@@ -93,7 +133,7 @@ cmp al , 50h
 ;mov dx , 03h
 
 ;*******************
-drawrect 159 , 0 , 1 , 200 , 06h ;pitch division
+;drawrect 159 , 0 , 1 , 200 , 06h ;pitch division
 
 
 
@@ -109,6 +149,16 @@ mov bx,0  ;
 mov cx,0
 
 yamany:
+
+
+mov bx,offset firsthealthbar
+call salq2
+jb lbl
+
+mov bx,offset secondhealthbar
+call salq2
+jb lbl
+
 
 ;cmp cx,0ff0h 
 ;jb skip
@@ -146,9 +196,10 @@ call firstbarrierrecoverdelay_proc
 call secondbarrierrecoverdelay_proc
 
 
-
 call drawfirstlaser
 call drawsecondlaser
+
+call a3del_elgamer
 
 mov di , offset player1
 drawrect [di] , [di+2] , 20 , playerheight , 05h ;1st player
@@ -744,13 +795,13 @@ jmp dont_drawlaser1
 
 drawlaser1:
 mov si, offset player1
-drawsolidrect [si], [si+2], laserlength, laserthickness, 04h
+;drawsolidrect [si], [si+2], laserlength, laserthickness, 04h
 ret
 
 dont_drawlaser1:
 mov firstlaser_on_delay, 1
 mov si, offset player1
-drawsolidrect [si], [si+2], laserlength, laserthickness, 0h
+;drawsolidrect [si], [si+2], laserlength, laserthickness, 0h
 
 ret
 drawfirstlaser endp
@@ -772,7 +823,7 @@ mov ax, [si]
 sub ax, 130
 mov temp1, ax
 pop ax
-drawsolidrect temp1, [si+2], laserlength, laserthickness, 04h
+;drawsolidrect temp1, [si+2], laserlength, laserthickness, 04h
 
 ret
 
@@ -785,7 +836,7 @@ mov ax, [si]
 sub ax, 130
 mov temp1, ax
 pop ax
-drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
+;drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
 
 ret
 drawsecondlaser endp
@@ -902,13 +953,13 @@ DecreaseHealth:
     sub di,bx
     deletebullet1 
  
-
-   mov cx,1
-  mov bh,0
-  mov ah,9
-  mov al,44h
-  mov bl,4
-  int 10h
+  ;debug
+  ;mov cx,1
+  ;mov bh,0
+  ;mov ah,9
+  ;mov al,44h
+  ;mov bl,4
+  ;int 10h
 
   
     
@@ -998,5 +1049,95 @@ outt2:
 CheckOfCollesion2 endp
 ;***************************
 
+a3del_elgamer proc
+pushall              
+;-------------------------player1-----------------------
+mov bx,offset player1
+mov cx,4    ;x left
+call salq
+cmp cx,[bx]
+jb ssps
+call salq
+mov [bx],cx
+ssps:
+
+mov cx,130    ;x right
+cmp cx,[bx]
+ja ssps2
+;call salq
+mov [bx],cx
+ssps2:
+
+mov bx,offset player1
+add bx,2
+
+mov cx,20    ;y top
+cmp cx,[bx]
+jb ssps3
+;call salq
+mov [bx],cx
+ssps3:
+
+mov cx,180    ;y bottom
+cmp cx,[bx]
+ja ssps4
+;call salq
+mov [bx],cx
+ssps4:
+
+
+;-------------------------player2-----------------------
+
+
+mov bx,offset player2
+mov cx,150    ;x left
+cmp cx,[bx]
+jb ssps5
+
+mov [bx],cx
+ssps5:
+
+mov cx,290    ;x right
+cmp cx,[bx]
+ja ssps6
+mov [bx],cx
+ssps6:
+
+mov bx,offset player2
+add bx,2
+
+mov cx,20    ;y top
+cmp cx,[bx]
+jb ssps7
+mov [bx],cx
+ssps7:
+
+mov cx,180    ;y bottom
+cmp cx,[bx]
+ja ssps8
+mov [bx],cx
+ssps8:
+
+
+
+
+popall
+ret
+a3del_elgamer endp
+
+salq proc
+;pushall
+;drawrect  [bx] , [bx+2] , 20 , playerheight , 0h
+;popall
+ret
+salq endp
+
+salq2 proc
+add bx,4
+mov ax,[bx]
+cmp ax,5
+
+ret
+salq2 endp
 
 end main
