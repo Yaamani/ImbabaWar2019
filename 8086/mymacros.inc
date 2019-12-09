@@ -345,7 +345,14 @@ endm
 Movplayer1	Macro
 local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
 mov si , offset player2
-
+        drawrect  [si] , [si+2] , 20 , playerheight , 0h
+        push ax
+        mov ax, [si]
+        sub ax, 130
+        mov temp1, ax
+        pop ax
+        drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
+        ;drawsolidrect  [si] , [si+2] , laserlength , playerheight , 0h
 		;mov ah,0
         ;int 16h
 		cmp ah , 48h
@@ -356,31 +363,33 @@ mov si , offset player2
 		jz bridgetoright
 		cmp ah , 4bh
 		jnz bridgetoend
-		left:mov bx , 1
+		left:mov bx , playerstep
 		sub [si] , bx
-		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
 		bridgetoend: jmp toend
 		bridgetoright: jmp right
 		bridgetodown: jmp down
-		UP:mov bx , 1
+		UP:mov bx , playerstep
 		sub [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		down:mov bx , 1
+		down:mov bx , playerstep
 		add [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		right:mov bx , 1
+		right:mov bx , playerstep
 		add [si] , bx
-		drawrect  [si] , [si+2] , 20 , 15 , 05h
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		toend:
 
 endm Movplayer1
 ;-------------------------------------------------------------------
 Movplayer2	Macro
 local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
-mov di , offset player1
+mov si , offset player1
+drawrect  [si] , [si+2] , 20 , playerheight , 0h
+drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h
 		cmp al , 77h
 		jz UP
 		cmp al , 73h
@@ -389,24 +398,24 @@ mov di , offset player1
 		jz bridgetoright
 		cmp al , 61h
 		jnz bridgetoend
-		left:mov bx , 1
-		sub [di] , bx
-		drawrect  [di] , [di+2] , 20 , 15 , 05h
+		left:mov bx , playerstep
+		sub [si] , bx
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
 		bridgetoend: jmp toend
 		bridgetoright: jmp right
 		bridgetodown: jmp down
-		UP:mov bx , 1
-		sub [di + 2] , bx
-		drawrect  [di] , [di+2] , 20 , 15 , 05h
+		UP:mov bx , playerstep
+		sub [si + 2] , bx
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		down:mov bx , 1
-		add [di + 2] , bx
-		drawrect  [di] , [di+2] , 20 , 15 , 03h
+		down:mov bx , playerstep
+		add [si + 2] , bx
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		right:mov bx , 1
-		add [di] , bx
-		drawrect  [di] , [di+2] , 20 , 15 , 02h
+		right:mov bx , playerstep
+		add [si] , bx
+		drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		toend:
 
 endm Movplayer2

@@ -8,7 +8,10 @@ secmess db 10,13,10,13,10,13,10,13,9,'   start chat press ','$'
 
 player1 dw 70 , 100
 player2 dw 250 , 100
-                         
+               
+playerstep equ 4
+playerheight equ 15
+
 player1bullets dw 0
 player1bulletx dw 200 dup(0)
 player1bullety dw 200 dup(0)
@@ -21,18 +24,25 @@ player2bullety dw 200 dup(0)
 laser_bar_recover_delay equ 33
 barrier_bar_recover_delay equ 33
 
+laser_on_delay equ 255
+
+laserthickness equ 3
+laserlength equ 150
+
 firsthealthbar  dw 10 , 10 , 35
 secondhealthbar dw 170 , 10 , 35
 ;**********************
 firstlaserrecoverdelay db laser_bar_recover_delay
-firstlaserbar   dw 70 , 15 , 20
+firstlaser_on_delay   db 1
+firstlaserbar   dw 70 , 13 , 20
 secondlaserrecoverdelay db laser_bar_recover_delay
-secondlaserbar   dw 230 , 15 , 20
+secondlaser_on_delay   db 1
+secondlaserbar   dw 230 , 13 , 20
 ;**********************
 firstbarrierrecoverdelay db barrier_bar_recover_delay
-firstbarrierbar  dw 115 , 15 , 35
+firstbarrierbar  dw 115 , 13 , 35
 secondbarrierrecoverdelay db barrier_bar_recover_delay
-secondbarrierbar dw 275 , 15 , 35
+secondbarrierbar dw 275 , 13 , 35
 
 temp1 dw ?
 temp2 dw ?
@@ -96,19 +106,19 @@ yamany:
 ;mov si , offset firstlaserbar
 ;decprogbar
 mov si , offset firsthealthbar
-drawprogbar 20, 02h, 04h
+drawprogbar 10, 02h, 04h
 mov si , offset secondhealthbar
-drawprogbar 20, 02h, 04h
+drawprogbar 10, 02h, 04h
 
 mov si , offset firstlaserbar
-drawprogbar 10, 1110b, 04h
+drawprogbar 5, 1110b, 04h
 mov si , offset secondlaserbar
-drawprogbar 10, 1110b, 04h
+drawprogbar 5, 1110b, 04h
 
 mov si , offset firstbarrierbar
-drawprogbar 10, 1000b, 04h
+drawprogbar 5, 1000b, 04h
 mov si , offset secondbarrierbar
-drawprogbar 10, 1000b, 04h
+drawprogbar 5, 1000b, 04h
 
 call firstlaserrecoverdelay_proc
 
@@ -119,14 +129,18 @@ call firstbarrierrecoverdelay_proc
 call secondbarrierrecoverdelay_proc
 
 
+
+call drawfirstlaser
+call drawsecondlaser
+
 mov di , offset player1
-drawrect [di] , [di+2] , 20 , 15 , 05h ;1st player
+drawrect [di] , [di+2] , 20 , playerheight , 05h ;1st player
 ;
 ;movplayer1
 ;drawrect 159 , 0 , 1 , 200 , 06h
 
 mov di , offset player2
-drawrect [di], [di+2] , 20 , 15 , 05h ;2nd player
+drawrect [di], [di+2] , 20 , playerheight , 05h ;2nd player
 
 ;mov ah,1
 ;int 16h
@@ -137,7 +151,7 @@ drawrect [di], [di+2] , 20 , 15 , 05h ;2nd player
 ;MOV     AH, 86H
 ;INT     15H
 
-movplayer2
+;movplayer2
 
 
 ;ending:
@@ -162,17 +176,18 @@ movplayer2
     
     loop l99
     ;-----------------------delay-----------------
-    MOV     CX, 0H
-    MOV     DX, 6000H
-    MOV     AH, 86H
-    INT     15H
+    ;MOV     CX, 0H
+    ;MOV     DX, 6000H
+    ;MOV     AH, 86H
+    ;INT     15H
     ; ----------------------- clear screen -------------------------
-    mov ax,0600h  
-    mov bh,0
-    mov cx,0
-    mov dx,184fh
-    int 10h 
+    ;mov ax,0600h  
+    ;mov bh,0
+    ;mov cx,0
+    ;mov dx,184fh
+    ;int 10h 
     ;-----------------------------------------------------------------
+    ;drawsolidrect 0 , 0 , 320 , 200 , 0h ;pitch division
     
     pop bx
     pop dx
@@ -381,8 +396,8 @@ loopbullets1:
             mov bx,offset player1bullety
            
             mov si,[bx+di]
-	    drawrect dx,si,5,2,03h
-            cmp dx,290
+            call drawBulletFrame
+            cmp dx,310
             jb didnt_go_out
 	        
 	     
@@ -423,7 +438,7 @@ loopbullets2:
             mov bx,offset player2bullety	    
 	    mov si,[bx+di]
 
-            drawrect dx,si,5,2,03h
+            call drawBulletFrame
             cmp dx,0
             ja didnt_go_out2
 	         
@@ -444,7 +459,17 @@ loopbullets2:
 drawbullets endp
 
 ;***************************
+drawBulletFrame proc
+drawrect dx,si,5,2,03h
+        sub dx, 2
+        sub si, 2
+drawrect dx, si, 9, 7, 0h
+        add dx,2
+        add si,2
+ret
+drawBulletFrame endp
 
+;***************************
 player2bullets_problem proc
              pushall
              
@@ -589,6 +614,8 @@ key_listener endp
 laser1 proc 
 mov si , offset secondlaserbar
 decprogbar 8
+
+mov secondlaser_on_delay, laser_on_delay
 ret
 laser1 endp
 
@@ -596,6 +623,8 @@ laser1 endp
 laser2 proc 
 mov si , offset firstlaserbar
 decprogbar 8
+
+mov firstlaser_on_delay, laser_on_delay
 ret
 laser2 endp
 
@@ -684,5 +713,63 @@ mov secondbarrierrecoverdelay, barrier_bar_recover_delay
 dont_inc_barrierbar2:
 ret
 secondbarrierrecoverdelay_proc endp
+
+;***************************
+drawfirstlaser proc
+push ax
+mov al, 1
+sub firstlaser_on_delay, al
+cmp firstlaser_on_delay, al
+pop ax
+ja drawlaser1
+jmp dont_drawlaser1
+
+drawlaser1:
+mov si, offset player1
+drawsolidrect [si], [si+2], laserlength, laserthickness, 04h
+ret
+
+dont_drawlaser1:
+mov firstlaser_on_delay, 1
+mov si, offset player1
+drawsolidrect [si], [si+2], laserlength, laserthickness, 0h
+
+ret
+drawfirstlaser endp
+
+;***************************
+drawsecondlaser proc
+push ax
+mov al, 1
+sub secondlaser_on_delay, al
+cmp secondlaser_on_delay, al
+pop ax
+ja drawlaser2
+jmp dont_drawlaser2
+
+drawlaser2:
+mov si, offset player2
+push ax
+mov ax, [si]
+sub ax, 130
+mov temp1, ax
+pop ax
+drawsolidrect temp1, [si+2], laserlength, laserthickness, 04h
+
+ret
+
+dont_drawlaser2:
+mov secondlaser_on_delay, 2
+
+mov si, offset player2
+push ax
+mov ax, [si]
+sub ax, 130
+mov temp1, ax
+pop ax
+drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
+
+ret
+drawsecondlaser endp
 
 end main
