@@ -1,7 +1,7 @@
 ;-----------------macros------
 showmessage macro mymessage
             mov ah,9h
-            mov dx,offset mymessage
+            mov cx,offset mymessage
             int 21h
 endm showmessage              
 ;------------draw rect-----------
@@ -419,3 +419,48 @@ drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h
 		toend:
 
 endm Movplayer2
+
+
+deleteBulletsShoubra Macro Xbullet,Ybullet
+
+	pushall
+        mov bx,player2bullets
+	mov di,offset player2bulletx
+	
+	mov ax , bx
+	add ax,di
+        mov di,Xbullet
+	lllk:
+
+		
+	mov cx,[di+2]
+	mov [di],cx
+	add di,2
+	cmp di,ax
+	jnz lllk
+	
+mov bx,player2bullets
+	mov di,offset player2bullety
+	mov ax , bx
+	add ax,di
+	mov di,Ybullet	
+	lllk2:
+
+	
+	mov cx,[di+2]
+	mov [di],cx
+	add di,2
+	cmp di,ax
+	jnz lllk2
+
+
+;-------------------------decrement bullet count-------------------------
+
+
+mov ax,player2bullets
+sub ax,2
+mov bx,offset player2bullets
+mov [bx],ax
+		
+	popall
+ENDM   deleteBulletsShoubra

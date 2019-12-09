@@ -12,6 +12,8 @@ player2 dw 250 , 100
 playerstep equ 4
 playerheight equ 15
 
+bulletHitAmountHealthbar equ 1
+
 player1bullets dw 0
 player1bulletx dw 200 dup(0)
 player1bullety dw 200 dup(0)
@@ -43,6 +45,21 @@ firstbarrierrecoverdelay db barrier_bar_recover_delay
 firstbarrierbar  dw 115 , 13 , 35
 secondbarrierrecoverdelay db barrier_bar_recover_delay
 secondbarrierbar dw 275 , 13 , 35
+
+;---width and len
+widthG equ  15
+lenG   equ  20
+widthB equ  2
+lenB   equ  5 
+
+;-----temp memory
+yGamerTop dw 0
+yGamerBottom dw 0
+
+yBulletTop dw 0
+yBulletBottom dw 0
+lenBetweenGB dw 0 
+
 
 temp1 dw ?
 temp2 dw ?
@@ -245,6 +262,7 @@ pop ax
     inc dx
     inc bx
     
+    call Collesion
     ;skip2:
     ;    inc cx
 jmp yamany
@@ -771,5 +789,214 @@ drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
 
 ret
 drawsecondlaser endp
+
+Collesion proc 
+    
+    pushall
+    
+    mov cx,player1bullets
+    cmp cx,0
+    jne notempty
+    jmp quit1
+    notempty:
+
+      mov di,offset player1bulletx
+      mov si,offset player1bullety
+      mov bx,offset player2 
+    
+    ;loop for all bullets out of gamer1
+    LForRightSide:
+        
+        call CheckOfCollesion1
+         
+        add di,2
+        add si,2
+        sub cx,2
+        cmp cx,0
+    ja LForRightSide 
+    quit1:
+    mov cx,player2bullets
+    cmp cx,0
+    jne notempty2
+    jmp quit2
+    notempty2:
+    mov di,offset player2bulletx
+    mov si,offset player2bullety
+    mov bx,offset player1 
+    
+     
+     
+    ;loop for all bullets out of gamer2
+    LForLeftSide:
+           
+        call CheckOfCollesion2 
+        
+        add di,2
+        add si,2
+        sub cx,2
+        cmp cx,0
+    ja LForLeftSide
+    
+    quit2:
+    popall
+    ret
+Collesion endp
+;--------------------------
+CheckOfCollesion1 proc 
+   pushall 
+   mov ax,[bx+2]
+   mov yGamerTop,ax
+   add ax,widthG  
+   mov yGamerBottom,ax 
+   
+   mov ax,[si]
+   mov yBulletTop,ax
+   add ax,widthB
+   mov yBulletBottom,ax
+   
+   mov ax,[bx]
+   mov dx,[di]
+   cmp ax,dx
+   jae abslutelen
+   sub dx,ax
+   xchg dx,ax
+
+   continue:
+     mov lenBetweenGB,ax
+     mov ax,widthB
+     cmp lenBetweenGB,ax
+      jbe continueComapring
+      
+     jmp outt
+
+abslutelen:  ; abslute length
+   sub ax,dx
+   jmp continue    
+
+continueComapring:
+   mov ax,yBulletTop
+   mov dx,yBulletBottom
+   
+   cmp ax,yGamerTop
+     ja continueComapringg2
+     je DecreaseHealth
+   cmp dx,yGamerTop
+     ja continueComapringg2       
+     je DecreaseHealth
+     jmp outt
+continueComapringg2:
+
+    cmp dx,yGamerBottom
+     jbe  DecreaseHealth
+     
+   cmp ax,yGamerBottom
+     jbe DecreaseHealth
+     jmp outt   
+
+DecreaseHealth:
+    
+    mov si , offset secondhealthbar
+    decprogbar bulletHitAmountHealthbar
+    
+    mov bx,offset player1bulletx
+    sub di,bx
+    deletebullet1 
+ 
+
+   mov cx,1
+  mov bh,0
+  mov ah,9
+  mov al,44h
+  mov bl,4
+  int 10h
+
+  
+    
+    
+outt:
+   
+   popall
+   ret
+CheckOfCollesion1 endp
+
+CheckOfCollesion2 proc
+
+    pushall
+   mov ax,[bx+2]
+   mov yGamerTop,ax
+   add ax,widthG  
+   mov yGamerBottom,ax 
+   
+   mov ax,[si]
+   mov yBulletTop,ax
+   add ax,widthB
+   mov yBulletBottom,ax
+   
+   mov ax,[bx]
+   mov dx,[di]
+   cmp ax,dx
+   jae abslutelen2
+   sub dx,ax
+   xchg dx,ax
+
+   continue2:
+     mov lenBetweenGB,ax
+     mov ax,widthG
+     cmp lenBetweenGB,ax
+      jbe continueComapring2
+     jmp outt2
+
+abslutelen2: ;absulte length 
+   sub ax,dx
+   jmp continue2    
+
+continueComapring2:
+
+   mov ax,yBulletTop
+   mov dx,yBulletBottom
+ 
+   cmp ax,yGamerTop
+     ja continueComapring22
+     je DecreaseHealth2
+   cmp dx,yGamerTop
+     ja continueComapring22       
+     je DecreaseHealth2
+     jmp outt2
+continueComapring22:
+
+    cmp dx,yGamerBottom
+     jbe  DecreaseHealth2
+     
+   cmp ax,yGamerBottom
+     jbe DecreaseHealth2
+     jmp outt2   
+
+DecreaseHealth2:
+    
+    push si
+    mov si , offset firsthealthbar
+    decprogbar bulletHitAmountHealthbar
+    
+    ;mov bx,player2bullets
+    ;sub di,bx
+    ;deletebullet2
+    pop si
+    deleteBulletsShoubra di,si 
+
+  ;mov cx,1
+  ;mov bh,0
+  ;mov ah,9
+  ;mov al,44h
+  ;mov bl,4
+  ;int 10h
+    
+    
+outt2:
+   popall
+   ret
+   
+CheckOfCollesion2 endp
+;***************************
+
 
 end main
