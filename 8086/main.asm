@@ -1,5 +1,6 @@
 include mymacros.inc
-.model small
+.model compact
+
 .stack 64
 .data
 intromessage db 10,13,10,13,10,13,10,13,10,13,9,'     EMBABA WAR  ','$' ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -12,6 +13,10 @@ secmess db 10,13,10,13,10,13,10,13,9,'   start chat press ','$'
 
 player1 dw 70 , 100
 player2 dw 250 , 100
+
+player1Score db 0
+player2Score db 0
+
                
 playerstep equ 4
 playerheight equ 15
@@ -88,7 +93,7 @@ INT     15H							   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov dx,184fh					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     int 10h 						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-lbl:
+game_over:
 ;push bx
 ;push ax
 mov bx,offset firsthealthbar
@@ -111,6 +116,19 @@ mov [player2bullets],bx
 ;pop ax
 ;pop bx
 
+;----- reset cursor --------
+push ax
+push dx
+
+mov ah,2
+mov dx,0
+int 10h
+
+pop dx
+pop ax
+
+;
+
 ;********main menu mode********
 mainmenu mes,fitmess,secmess
 
@@ -121,11 +139,8 @@ int 16h   ;get key pressed (wait for a key-ah:scancode,al:ascii)
 cmp al , 'p'
 jne onlyP
 ;********clear screen******************
-    mov ax,0600h
-    mov bh,0
-    mov cx,0
-    mov dx,184fh
-    int 10h 
+
+clear_screen
 
 ;*******************
 ;mov ax , 8h
@@ -152,12 +167,31 @@ yamany:
 
 
 mov bx,offset firsthealthbar
-call salq2
-jb lbl
+add bx,4
+mov ax,[bx]
+cmp ax,5
+jae not_game_over
+
+mov bh ,player2Score ;inc player 2 score
+inc bh
+mov player2Score , bh
+
+jmp far ptr game_over
+not_game_over:
 
 mov bx,offset secondhealthbar
-call salq2
-jb lbl
+add bx,4
+mov ax,[bx]
+
+cmp ax,5
+jae not_game_over2
+
+mov bh ,player1Score ;inc player 2 score
+inc bh
+mov player1Score , bh
+
+jmp far ptr game_over
+not_game_over2:
 
 
 ;cmp cx,0ff0h 
@@ -1132,12 +1166,10 @@ salq proc
 ret
 salq endp
 
-salq2 proc
-add bx,4
-mov ax,[bx]
-cmp ax,5
+;salq2 proc
 
-ret
-salq2 endp
+
+;ret
+;salq2 endp
 
 end main

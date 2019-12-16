@@ -115,6 +115,12 @@ endm    intromenu
 ;----------main menu--------------
 mainmenu macro mymessage,fitmess,secmess
 
+mov ax,0600h
+mov bh,0
+mov cx,0
+mov dx,184fh
+int 10h 
+
 showmessage mymessage
 showmessage fitmess
 mov ah,9          ;display
@@ -506,3 +512,15 @@ mov [bx],ax
 		
 	popall
 ENDM   deleteBulletsShoubra
+
+
+
+clear_screen macro 
+    pushall
+    mov ax,0600h
+    mov bh,0
+    mov cx,0
+    mov dx,184fh
+    int 10h 
+    popall
+endm clear_screen
