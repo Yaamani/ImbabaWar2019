@@ -165,6 +165,8 @@ mov cx,0
 
 yamany:
 
+drawsolidrect 0 , 0 , 158 , 3 , 0h ; don't touch
+drawsolidrect 161 , 0 , 158 , 3 , 0h ; don't touch
 
 mov bx,offset firsthealthbar
 add bx,4
@@ -486,14 +488,17 @@ drawbullets proc
 	    
 
 	    cmp ax,0
-	    je empty
-
+	    jne eee
+      jmp far ptr empty
+      eee:
 	    ;mov bx,offset player1bulletx
 loopbullets1:            
         mov bx,offset player1bulletx
 	    ;move player 1 bullets by one            
 	    mov dx,[bx+di]
-	    add dx,1
+	    call drawBulletFrame_black1
+
+      add dx,1
 	    mov [bx+di],dx
 
             mov bx,offset player1bullety
@@ -502,12 +507,12 @@ loopbullets1:
             call drawBulletFrame
             cmp dx,310
             jb didnt_go_out
-	        
+            
 	     
-	         
+          call drawBulletFrame_black1
 	        deletebullet1 		
             sub di,2
-	    didnt_go_out:       
+	        didnt_go_out:       
 	        
 	        add di,2                    
             
@@ -515,7 +520,9 @@ loopbullets1:
             mov ax,player1bullets
             
             cmp di,ax
-            jb loopbullets1
+            jae eee2
+            jmp far ptr loopbullets1
+            eee2:
             
             empty:
             ;--------- draw player 2 bullets -------------
@@ -527,11 +534,15 @@ loopbullets1:
 	    ;mov bx,offset player2bulletx
 	    
             cmp ax,0
-	    je empty2
+	    jne eee3 
+      jmp far ptr empty2
+      eee3:
 	        mov di,0
 loopbullets2:            
             mov bx,offset player2bulletx
             mov dx,[bx+di]
+
+            call drawBulletFrame_black2
 		
 	    ;move player 2 bullets by one            
 	    mov dx,[bx+di]
@@ -543,16 +554,30 @@ loopbullets2:
 
             call drawBulletFrame
             cmp dx,0
-            ja didnt_go_out2
-	         
-	        deletebullet2 		
+            
+            jbe eee4
+            jmp far ptr didnt_go_out2
+	          eee4:
+            
+            call drawBulletFrame_black2
+	         ;deletebullet2 	
+            add bx,di
+            mov si,bx
+            mov bx,offset player2bulletx
+            add bx,di
+            mov dx,bx
+            deleteBulletsShoubra dx,si 
+            ;deletebullet2
             sub di,2
+            
             didnt_go_out2:       
             
             
             add di,2
             cmp di,ax
-            jb loopbullets2 
+            jae eee5
+            jmp far ptr loopbullets2 
+            eee5:
             
 	    empty2: 
           
@@ -564,13 +589,29 @@ drawbullets endp
 ;***************************
 drawBulletFrame proc
 drawrect dx,si,5,2,03h
-        sub dx, 2
-        sub si, 2
-drawrect dx, si, 9, 7, 0h
-        add dx,2
-        add si,2
+        
 ret
 drawBulletFrame endp
+
+
+drawBulletFrame_black1 proc
+  push bx 
+  mov bx,offset player1bullety         
+  mov si,[bx+di]
+  drawrect dx,si,5,2,0h
+  pop bx
+ret
+drawBulletFrame_black1 endp
+
+
+drawBulletFrame_black2 proc
+  push bx 
+  mov bx,offset player2bullety         
+  mov si,[bx+di]
+  drawrect dx,si,5,2,0h
+  pop bx
+ret
+drawBulletFrame_black2 endp
 
 ;***************************
 player2bullets_problem proc
@@ -588,8 +629,7 @@ player2bullets_problem proc
 loopbullets4:            
             mov bx,offset player2bulletx
             mov dx,[bx+di]
-		
-	    ;move player 2 bullets by one            
+		      
 	    mov dx,[bx+di]
 	    
 		
@@ -598,8 +638,8 @@ loopbullets4:
 
             cmp dx,300
             jb didnt_go_out4
-	         
-	        deletebullet2 		
+	          drawrect dx,si,5,2,0h
+	          deletebullet2 		
             sub di,2
             didnt_go_out4:       
             

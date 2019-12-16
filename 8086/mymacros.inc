@@ -310,6 +310,15 @@ deletebullet1 MACRO
 push ax
 push bx
 push si 
+;-----------------------------clear from screen----------------
+mov bx,offset player1bulletx
+mov ax,[bx+di]
+
+mov bx,offset player1bullety
+mov si,[bx+di]
+
+drawrect ax,si,5,2,0h
+
 ;-------------------------swap x position----------------------
 mov bx,offset player1bulletx
 
@@ -333,7 +342,7 @@ pop si
 pop bx
 pop ax
 
-endm
+endm deletebullet1
 ;------------------------------------ delete bullet 2 ------------------------------------
 
 deletebullet2 MACRO 
@@ -526,8 +535,15 @@ endm Movplayer2
 
 
 deleteBulletsShoubra Macro Xbullet,Ybullet
-
+    local lllk,lllk2
 	pushall
+    mov bx , Xbullet
+    mov ax , [bx]
+    mov bx , ybullet
+    mov cx , [bx]
+
+    drawrect ax,cx,10,10,0h ;delete bullet from screen
+
         mov bx,player2bullets
 	mov di,offset player2bulletx
 	
