@@ -81,11 +81,11 @@ mov ds,ax
 mov ax,13h
 int 10h
 ;*********intro message****************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-intromenu intromessage				   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MOV     CX, 1fH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-INT     15H							   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; intromenu intromessage				   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; MOV     CX, 1fH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; INT     15H							   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;********clear screen******************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov ax,0600h					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov bh,0						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,7 +186,7 @@ mov ax,[bx]
 cmp ax,5
 jae not_game_over2
 
-mov bh ,player1Score ;inc player 2 score
+mov bh ,player1Score ;inc player 1 score
 inc bh
 mov player1Score , bh
 
@@ -233,7 +233,7 @@ call secondbarrierrecoverdelay_proc
 call drawfirstlaser
 call drawsecondlaser
 
-call a3del_elgamer
+; call a3del_elgamer
 
 mov di , offset player1
 drawrect [di] , [di+2] , 20 , playerheight , 05h ;1st player
@@ -1088,17 +1088,18 @@ pushall
 ;-------------------------player1-----------------------
 mov bx,offset player1
 mov cx,4    ;x left
-call salq
+;call drawrect_proc
 cmp cx,[bx]
 jb ssps
-call salq
+call drawrect_proc_x
+
 mov [bx],cx
 ssps:
 
 mov cx,130    ;x right
 cmp cx,[bx]
 ja ssps2
-;call salq
+call drawrect_proc_x
 mov [bx],cx
 ssps2:
 
@@ -1108,14 +1109,14 @@ add bx,2
 mov cx,20    ;y top
 cmp cx,[bx]
 jb ssps3
-;call salq
+call drawrect_proc_y
 mov [bx],cx
 ssps3:
 
 mov cx,180    ;y bottom
 cmp cx,[bx]
 ja ssps4
-;call salq
+call drawrect_proc_y
 mov [bx],cx
 ssps4:
 
@@ -1128,13 +1129,18 @@ mov cx,150    ;x left
 cmp cx,[bx]
 jb ssps5
 
+call drawrect_proc_x
 mov [bx],cx
+
 ssps5:
 
 mov cx,290    ;x right
 cmp cx,[bx]
 ja ssps6
+
+call drawrect_proc_x
 mov [bx],cx
+
 ssps6:
 
 mov bx,offset player2
@@ -1143,33 +1149,44 @@ add bx,2
 mov cx,20    ;y top
 cmp cx,[bx]
 jb ssps7
+
+call drawrect_proc_y
 mov [bx],cx
+
 ssps7:
 
 mov cx,180    ;y bottom
 cmp cx,[bx]
 ja ssps8
+
+call drawrect_proc_y
 mov [bx],cx
+
 ssps8:
-
-
-
 
 popall
 ret
 a3del_elgamer endp
 
-salq proc
-;pushall
-;drawrect  [bx] , [bx+2] , 20 , playerheight , 0h
-;popall
+drawrect_proc_x proc
+
+pushall
+drawrect  [bx] , [bx+2] , 20 , playerheight , 0h
+popall
 ret
-salq endp
 
-;salq2 proc
+drawrect_proc_x endp
+
+;--------------------------------------
+
+drawrect_proc_y proc
+
+pushall
+drawrect  [bx-2] , [bx] , 20 , playerheight , 0h
+popall
+ret
+drawrect_proc_y endp
 
 
-;ret
-;salq2 endp
 
 end main

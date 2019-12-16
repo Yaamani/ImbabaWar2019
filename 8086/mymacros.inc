@@ -391,7 +391,7 @@ pop ax
 endm
 ;*****************************
 Movplayer1	Macro
-local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
+local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check , reach_down_limit , reach_up_limit,reach_right_limit
 mov si , offset player2
         drawrect  [si] , [si+2] , 20 , playerheight , 0h
         push ax
@@ -406,64 +406,120 @@ mov si , offset player2
 		cmp ah , 48h
 		jz UP
 		cmp ah , 50h
-		jz bridgetodown
+		jz down
 		cmp ah , 4dh
-		jz bridgetoright
+		jz right
 		cmp ah , 4bh
-		jnz bridgetoend
-		left:mov bx , playerstep
+		jnz toend
+        
+        left:
+        mov bx, [si]
+        cmp bx , 165
+        jb reach_left_limit
+
+        mov bx , playerstep
 		sub [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
-		jmp toend
-		bridgetoend: jmp toend
-		bridgetoright: jmp right
-		bridgetodown: jmp down
-		UP:mov bx , playerstep
+
+        reach_left_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        jmp toend
+
+        UP:
+        mov bx, [si+2]
+        cmp bx , 25 
+        jb reach_up_limit
+
+        mov bx , playerstep
         sub [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+
+        reach_up_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		down:mov bx , playerstep
+		
+        down:
+        mov bx, [si+2]
+        cmp bx , 180
+        ja reach_down_limit 
+        
+        mov bx , playerstep
 		add [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        
+        reach_down_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		right:mov bx , playerstep
+		
+        right:
+        mov bx, [si]
+        cmp bx , 295
+        ja reach_right_limit
+        mov bx , playerstep
 		add [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        reach_right_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		toend:
 
 endm Movplayer1
 ;-------------------------------------------------------------------
 Movplayer2	Macro
-local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
+local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check , reach_down_limit , reach_up_limit,reach_right_limit,reach_left_limit
 mov si , offset player1
 drawrect  [si] , [si+2] , 20 , playerheight , 0h
 drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h
 		cmp al , 77h
 		jz UP
 		cmp al , 73h
-		jz bridgetodown
+		jz down
 		cmp al , 64h
-		jz bridgetoright
+		jz right
 		cmp al , 61h
-		jnz bridgetoend
-		left:mov bx , playerstep
+		jnz toend
+		
+        left:
+        mov bx, [si]
+        cmp bx , 5
+        jb reach_left_limit
+
+        mov bx , playerstep
 		sub [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+
+        reach_left_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		bridgetoend: jmp toend
-		bridgetoright: jmp right
-		bridgetodown: jmp down
-		UP:mov bx , playerstep
+		
+        UP:
+        mov bx, [si+2]
+        cmp bx , 25
+        jb reach_up_limit
+        
+        mov bx , playerstep
 		sub [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        
+        reach_up_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		down:mov bx , playerstep
+
+		down:
+        mov bx, [si+2]
+        cmp bx , 180
+        ja reach_down_limit 
+        
+        mov bx , playerstep
 		add [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        
+        reach_down_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		right:mov bx , playerstep
+
+		right:
+        mov bx, [si]
+        cmp bx , 135
+        ja reach_right_limit
+
+        mov bx , playerstep
 		add [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+
+        reach_right_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		toend:
 
 endm Movplayer2
