@@ -1,5 +1,6 @@
 include mymacros.inc
-.model small
+.model compact
+.386
 .stack 64
 .data
 intromessage db 10,13,10,13,10,13,10,13,10,13,9,'     EMBABA WAR  ','$' ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -41,9 +42,11 @@ secondhealthbar dw 170 , 10 , 35
 firstlaserrecoverdelay db laser_bar_recover_delay
 firstlaser_on_delay   db 1
 firstlaserbar   dw 70 , 13 , 20
+firstlaser_cleared db 1
 secondlaserrecoverdelay db laser_bar_recover_delay
 secondlaser_on_delay   db 1
 secondlaserbar   dw 230 , 13 , 20
+secondlaser_cleared db 1
 ;**********************
 firstbarrierrecoverdelay db barrier_bar_recover_delay
 firstbarrierbar  dw 115 , 13 , 35
@@ -76,11 +79,11 @@ mov ds,ax
 mov ax,13h
 int 10h
 ;*********intro message****************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-intromenu intromessage				   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MOV     CX, 1fH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-INT     15H							   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;intromenu intromessage				   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;MOV     CX, 1fH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;MOV     DX, 8253H					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;INT     15H							   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;********clear screen******************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov ax,0600h					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov bh,0						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -149,7 +152,6 @@ mov bx,0  ;
 mov cx,0
 
 yamany:
-
 
 mov bx,offset firsthealthbar
 call salq2
@@ -313,9 +315,19 @@ pop ax
     inc dx
     inc bx
     
-    call Collesion
+    call Collision
     ;skip2:
     ;    inc cx
+    
+    ;pushall
+    ;DEBUG
+    ;mov ah, 2
+    ;mov dl, 'A'
+    ;int 21
+    ;popall
+
+    ;showmessage intromessage
+
 jmp yamany
 
 hlt
@@ -795,13 +807,30 @@ jmp dont_drawlaser1
 
 drawlaser1:
 mov si, offset player1
-;drawsolidrect [si], [si+2], laserlength, laserthickness, 04h
+drawsolidrect [si], [si+2], laserlength, laserthickness, 04h
+
+push ax
+mov al, 0
+mov firstlaser_cleared, al
+pop ax
+
 ret
 
 dont_drawlaser1:
 mov firstlaser_on_delay, 1
 mov si, offset player1
-;drawsolidrect [si], [si+2], laserlength, laserthickness, 0h
+
+;claer the laser
+push ax
+mov al, 1
+cmp firstlaser_cleared, al
+je dontclear1
+
+drawsolidrect [si], [si+2], laserlength, laserthickness, 0h
+mov firstlaser_cleared, al
+
+dontclear1:
+pop ax
 
 ret
 drawfirstlaser endp
@@ -823,7 +852,12 @@ mov ax, [si]
 sub ax, 130
 mov temp1, ax
 pop ax
-;drawsolidrect temp1, [si+2], laserlength, laserthickness, 04h
+drawsolidrect temp1, [si+2], laserlength, laserthickness, 04h
+
+push ax
+mov al, 0
+mov secondlaser_cleared, al
+pop ax
 
 ret
 
@@ -836,12 +870,22 @@ mov ax, [si]
 sub ax, 130
 mov temp1, ax
 pop ax
-;drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
 
+;claer the laser
+push ax
+mov al, 1
+cmp secondlaser_cleared, al
+je dontclear2
+
+drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
+mov secondlaser_cleared, al
+
+dontclear2:
+pop ax
 ret
 drawsecondlaser endp
 
-Collesion proc 
+Collision proc 
     
     pushall
     
@@ -858,7 +902,7 @@ Collesion proc
     ;loop for all bullets out of gamer1
     LForRightSide:
         
-        call CheckOfCollesion1
+        call CheckOfCollision1
          
         add di,2
         add si,2
@@ -880,7 +924,7 @@ Collesion proc
     ;loop for all bullets out of gamer2
     LForLeftSide:
            
-        call CheckOfCollesion2 
+        call CheckOfCollision2 
         
         add di,2
         add si,2
@@ -891,9 +935,9 @@ Collesion proc
     quit2:
     popall
     ret
-Collesion endp
+Collision endp
 ;--------------------------
-CheckOfCollesion1 proc 
+CheckOfCollision1 proc 
    pushall 
    mov ax,[bx+2]
    mov yGamerTop,ax
@@ -968,9 +1012,9 @@ outt:
    
    popall
    ret
-CheckOfCollesion1 endp
+CheckOfCollision1 endp
 
-CheckOfCollesion2 proc
+CheckOfCollision2 proc
 
     pushall
    mov ax,[bx+2]
@@ -1046,7 +1090,7 @@ outt2:
    popall
    ret
    
-CheckOfCollesion2 endp
+CheckOfCollision2 endp
 ;***************************
 
 a3del_elgamer proc

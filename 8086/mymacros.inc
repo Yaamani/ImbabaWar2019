@@ -392,11 +392,19 @@ mov si , offset player2
         mov ax, [si]
         sub ax, 130
         mov temp1, ax
-        pop ax
-        drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
+        
+        mov al, 2
+        cmp secondlaser_on_delay, al
+        jbe dontclear1m
+
+        drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h ;claer laser upon mvement
         ;drawsolidrect  [si] , [si+2] , laserlength , playerheight , 0h
 		;mov ah,0
         ;int 16h
+
+        dontclear1m:
+        pop ax
+
 		cmp ah , 48h
 		jz UP
 		cmp ah , 50h
@@ -430,8 +438,18 @@ endm Movplayer1
 Movplayer2	Macro
 local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
 mov si , offset player1
-drawrect  [si] , [si+2] , 20 , playerheight , 0h
-drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h
+drawrect  [si] , [si+2] , 20 , playerheight , 0h ;clear player upon movement
+
+        push ax
+        mov al, 2
+        cmp firstlaser_on_delay, al
+        jbe dontclear2m
+
+drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h ;clear laser upon movement
+
+dontclear2m:
+        pop ax
+        
 		cmp al , 77h
 		jz UP
 		cmp al , 73h
