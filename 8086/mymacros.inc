@@ -115,11 +115,11 @@ endm    intromenu
 ;----------main menu--------------
 mainmenu macro mymessage,fitmess,secmess
 
-mov ax,0600h
-mov bh,0
-mov cx,0
-mov dx,184fh
-int 10h 
+; mov ax,0600h ;reset
+; mov bh,0 
+; mov cx,0 
+; mov dx,184fh 
+; int 10h  
 
 showmessage mymessage
 showmessage fitmess
@@ -542,9 +542,9 @@ deleteBulletsShoubra Macro Xbullet,Ybullet
     mov bx , ybullet
     mov cx , [bx]
 
-    drawrect ax,cx,10,10,0h ;delete bullet from screen
+    drawrect ax,cx,5,2,0h ;delete bullet from screen
 
-        mov bx,player2bullets
+    mov bx,player2bullets
 	mov di,offset player2bulletx
 	
 	mov ax , bx
@@ -559,7 +559,7 @@ deleteBulletsShoubra Macro Xbullet,Ybullet
 	cmp di,ax
 	jnz lllk
 	
-mov bx,player2bullets
+    mov bx,player2bullets
 	mov di,offset player2bullety
 	mov ax , bx
 	add ax,di
@@ -596,3 +596,110 @@ clear_screen macro
     int 10h 
     popall
 endm clear_screen
+;***************************
+ req_rec_mac macro 
+  local request_received_loop , not_accepted 
+
+  clear_screen
+  ;reset_cursor
+
+  showmessage my_name
+  showmessage play_req_mes
+  request_received_loop: 
+
+  mov ah,1
+  int 16h
+ 
+  
+  jz request_received_loop
+  
+
+  mov ah,0
+  int 16h
+  mov send_VALUE, al
+  call send_data_proc
+
+  cmp al , 'y' ; request got accepted
+  je accepted1
+  clear_screen
+  jmp far ptr mainmenu_loop
+
+  accepted1:
+  mov al, 1
+  mov leftPlayer ,al
+   clear_screen
+  jmp  game_loop
+
+endm req_rec_mac
+
+;*******************************
+
+ req_sent_mac macro
+ clear_screen
+ ;reset_cursor
+ showmessage my_name
+ showmessage play_req_mes_wait
+
+ request_sent_loop:
+
+ call receive_data_proc
+ mov al,received_VALUE
+ cmp al , '-' ;'-' is empty receive value char
+ je request_sent_loop
+ 
+ cmp al , 'y' ; request got accepted
+ jne not_accepted
+ mov al, 0
+ mov leftPlayer ,al
+ clear_screen
+ jmp far ptr game_loop
+ 
+ not_accepted:
+ clear_screen
+ jmp far ptr mainmenu_loop
+ 
+ 
+ endm req_sent_mac 
+
+; ;**************************************
+; request_received_mac macro
+; local request_received_loop , not_accepted
+; 
+; request_received_loop:
+; mov ah,1
+; int 16h
+; 
+; jnz exist2
+; jmp request_received_loop
+; exist2:
+; 
+; mov ah,0
+; int 16h
+; mov send_VALUE, al
+; call send_data_proc
+; 
+; cmp al , 'y' ; request got accepted
+; jne not_accepted1
+; mov al, 1
+; mov leftPlayer ,al
+; jmp  game_loop
+; 
+; not_accepted1:
+; jmp  mainmenu_loop
+; 
+; 
+; endm request_received_mac 
+
+
+reset_cursor macro
+push ax
+push dx
+
+mov ah,2
+mov dx,0
+int 10h
+
+pop dx
+pop ax
+endm reset_cursor
+

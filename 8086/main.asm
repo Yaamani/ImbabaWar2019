@@ -1,4 +1,6 @@
 include mymacros.inc
+;include mymacros2.inc
+
 .model compact
 
 .stack 64
@@ -10,12 +12,23 @@ mes db 10,13,10,13,9,9,'main menu','$'
 fitmess db 10,13,10,13,10,13,9,'   start play press ','$'
 secmess db 10,13,10,13,10,13,10,13,9,'   start chat press ','$'
 ;guidemess db 10,13,10,13,10,13,10,13,9,'   Game INFO press ','$'
+name_request_message db 10,13,10,13,10,13,9,'   please enter your name ',10,9,9,'$'
 
+play_req_mes db ' ,you recived playing request press y to accept $'
+
+play_req_mes_wait db  ' ,waiting for other player answer $'
 player1 dw 70 , 100
 player2 dw 250 , 100
 
 player1Score db 0
 player2Score db 0
+
+player_name db  26        ;MAX NUMBER OF CHARACTERS ALLOWED (25).
+            db  ?         ;NUMBER OF CHARACTERS ENTERED BY USER.
+my_name     db  26 dup('$') ;CHARACTERS ENTERED BY USER.
+
+other_player_name db 'player 2 $' ;CHARACTERS ENTERED BY USER.
+
 
                
 playerstep equ 4
@@ -42,6 +55,13 @@ laserlength equ 150
 
 firsthealthbar  dw 10 , 10 , 35
 secondhealthbar dw 170 , 10 , 35
+
+connection_set db 0 
+leftPlayer db 0  ; for multible devices
+
+received_VALUE db 0 
+send_VALUE db 0 
+
 ;**********************
 firstlaserrecoverdelay db laser_bar_recover_delay
 firstlaser_on_delay   db 1
@@ -73,9 +93,36 @@ lenBetweenGB dw 0
 temp1 dw ?
 temp2 dw ?
 .code         
-main proc far            
+main proc far  
+
+
 mov ax,@data
 mov ds,ax
+
+
+;--------------------------- set up serial stuff-------------------------
+;Set Divisor Latch Access Bit
+mov dx,3fbh 			; Line Control Register
+mov al,10000000b		;Set Divisor Latch Access Bit
+out dx,al				;Out it
+;Set LSB byte of the Baud Rate Divisor Latch register.
+mov dx,3f8h			
+mov al,0ch			
+out dx,al
+;Set MSB byte of the Baud Rate Divisor Latch register.
+mov dx,3f9h
+mov al,00h
+out dx,al
+;Set port configuration
+mov dx,3fbh
+mov al,00011011b
+out dx,al
+;------------------------------------------------------------------------
+
+
+
+
+
 
 ;********video mode********
 mov ax,13h
@@ -87,60 +134,90 @@ int 10h
 ; MOV     AH, 86H						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; INT     15H							   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;********clear screen******************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov ax,0600h					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov bh,0						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov cx,0						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    mov dx,184fh					   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    int 10h 						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-game_over:
-;push bx
-;push ax
-mov bx,offset firsthealthbar
-add bx,4
-mov ax,35
-mov [bx],ax
-
-mov bx,offset secondhealthbar
-add bx,4
-mov ax,35
-mov [bx],ax
-
-mov bx,0
-mov [player1bullets],bx ;model small problem
-mov [player2bullets],bx
+   clear_screen
 
 
-;player1 dw 70 , 100
-;player2 dw 250 , 100
-;pop ax
-;pop bx
+
 
 ;----- reset cursor --------
-push ax
-push dx
-
-mov ah,2
-mov dx,0
-int 10h
-
-pop dx
-pop ax
-
+reset_cursor
 ;
+    showmessage name_request_message
+    mov ah, 0Ah ;SERVICE TO CAPTURE STRING FROM KEYBOARD.
+    mov dx, offset player_name
+    int 21h 
+
+game_over:
+call reset_game ; reset health bar & bullets 
+
 
 ;********main menu mode********
+clear_screen
+;mainmenu mes,fitmess,secmess
+
+mainmenu_loop :
+;clear_screen
+
+reset_cursor
+;-------key pressed--------
+
 mainmenu mes,fitmess,secmess
 
-;-------key pressed---------
-onlyp:
-mov ah,0
-int 16h   ;get key pressed (wait for a key-ah:scancode,al:ascii)  
+    mov ah,1
+    int 16h
+    
+    jnz exist1
+    jmp far ptr receive
+    exist1:
+    mov ah,0
+    int 16h
+    mov send_VALUE,al
+    call send_data_proc 
+
+    cmp al , 'p'
+    je a_play_request
+    jmp far ptr receive
+    a_play_request:
+ ;   call request_sent_proc
+     req_sent_mac
+
+    
+    
+
+    
+
+
+
+
+
+
+
+receive:
+
+call receive_data_proc
+
+mov al,received_VALUE
+cmp al , '-'
+jne not_empty1
+jmp far ptr mainmenu_loop
+
+not_empty1:
 cmp al , 'p'
-jne onlyP
+jne not_a_play_request1
+
+req_rec_mac
+
+
+
+not_a_play_request1:
+
+jmp mainmenu_loop
+
 ;********clear screen******************
 
 clear_screen
+
+;*******************
 
 ;*******************
 ;mov ax , 8h
@@ -148,14 +225,8 @@ clear_screen
 ;mov dx , 03h
 
 ;*******************
+
 ;drawrect 159 , 0 , 1 , 200 , 06h ;pitch division
-
-
-
-;call firebullet1
-
-
-;call firebullet2
 
 
 mov dx,0  ;i am using DX , BX for the delay in fire rate so DON'T CHANGE THEM IN YOUR CODE
@@ -163,7 +234,7 @@ mov bx,0  ;
 
 mov cx,0
 
-yamany:
+game_loop: ; yamany
 
 drawsolidrect 0 , 0 , 158 , 3 , 0h ; don't touch
 drawsolidrect 161 , 0 , 158 , 3 , 0h ; don't touch
@@ -352,7 +423,7 @@ pop ax
     call Collesion
     ;skip2:
     ;    inc cx
-jmp yamany
+jmp game_loop
 
 hlt
 main    endp
@@ -1217,7 +1288,7 @@ ret
 
 drawrect_proc_x endp
 
-;--------------------------------------
+;**************************************
 
 drawrect_proc_y proc
 
@@ -1227,6 +1298,125 @@ popall
 ret
 drawrect_proc_y endp
 
+;**************************************
 
+send_data_proc proc 
+pushall
+
+
+
+  		mov dx , 3FDH		; Line Status Register
+AGAIN:  	
+      In al , dx 			;Read Line Status
+  		test al , 00100000b
+  		JZ AGAIN                               ;Not empty
+ 
+;If empty put the VALUE in Transmit data register
+  		mov dx , 3F8H		; Transmit data register
+  		mov  al,send_VALUE
+  		out dx , al
+
+;mov ah,2
+;mov dl,send_VALUE
+;int 21h
+
+popall
+ret 
+send_data_proc endp
+
+;**************************************
+
+receive_data_proc proc
+
+;Check that Data is Ready
+		mov dx , 3FDH		; Line Status Register
+	  	in al , dx 
+  		test al , 1
+  		JZ date_ready                                    ;Not Ready
+ ;If Ready read the VALUE in Receive data register
+  		mov dx , 03F8H
+  		in al , dx 
+  		mov received_VALUE , al
+      ret
+
+      date_ready:
+      mov al , '-'
+      mov received_VALUE , al
+
+
+      ret 
+receive_data_proc endp
+
+;**************************************
+;
+;request_received_proc proc far
+;
+;request_received_loop:
+;mov ah,1
+;int 16h
+;
+;jnz exist2
+;jmp request_received_loop
+;exist2:
+;
+;mov ah,0
+;int 16h
+;mov send_VALUE, al
+;call send_data_proc
+;
+;cmp al , 'y' ; request got accepted
+;jne not_accepted1
+;mov al, 1
+;mov leftPlayer ,al
+;jmp far ptr game_loop
+;
+;not_accepted1:
+;jmp far ptr mainmenu_loop
+;
+;ret
+;request_received_proc endp
+;
+;
+;;***********************************
+;
+;request_sent_proc proc far
+;
+;request_sent_loop:
+;call receive_data_proc
+;mov al,received_VALUE
+;
+;cmp al , '-' ;'-' is empty receive value char
+;je request_sent_loop
+;
+;cmp al , 'y' ; request got accepted
+;jne not_accepted
+;mov al, 0
+;mov leftPlayer ,al
+;jmp far ptr game_loop
+;
+;not_accepted:
+;jmp far ptr mainmenu_loop
+;
+;request_sent_proc endp
+;
+;;***************************************
+;
+reset_game proc
+mov bx,offset firsthealthbar
+add bx,4
+mov ax,35
+mov [bx],ax
+
+mov bx,offset secondhealthbar
+add bx,4
+mov ax,35
+mov [bx],ax
+
+mov bx,0
+mov player1bullets,bx ;model small problem
+mov player2bullets,bx
+
+ret
+reset_game endp 
 
 end main
