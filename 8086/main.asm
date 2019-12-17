@@ -16,6 +16,8 @@ name_request_message db 10,13,10,13,10,13,9,'   please enter your name ',10,9,9,
 
 play_req_mes db ' ,you recived playing request press y to accept $'
 
+connection_waiting_mes db ' waiting for the other player to connect $'
+
 play_req_mes_wait db  ' ,waiting for other player answer $'
 player1 dw 70 , 100
 player2 dw 250 , 100
@@ -139,14 +141,46 @@ int 10h
 
 
 
-;----- reset cursor --------
+
 reset_cursor
-;
+
+;-------- get name -------------
     showmessage name_request_message
     mov ah, 0Ah ;SERVICE TO CAPTURE STRING FROM KEYBOARD.
     mov dx, offset player_name
     int 21h 
 
+;---------------------------------
+clear_screen
+;----------- establish connection----------
+mov al, '*' ;any body there signal
+mov send_VALUE,al
+call send_data_proc
+
+showmessage connection_waiting_mes
+
+no_signal_yet:
+
+
+
+call receive_data_proc
+mov al,'-' ; empty sign
+cmp received_VALUE,al
+jne data_received 
+jmp no_signal_yet
+
+data_received:
+mov al, '&' 
+cmp received_VALUE,al
+je dont_say_yes
+
+mov al, '&'      ;yes signal
+mov send_VALUE,al
+call send_data_proc
+
+dont_say_yes:
+
+;----------- establish connection----------
 game_over:
 call reset_game ; reset health bar & bullets 
 
