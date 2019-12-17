@@ -449,7 +449,6 @@ drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h ;clear laser up
 
 dontclear2m:
         pop ax
-        
 		cmp al , 77h
 		jz UP
 		cmp al , 73h

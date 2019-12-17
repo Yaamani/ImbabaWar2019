@@ -36,6 +36,8 @@ laser_on_delay equ 255
 laserthickness equ 3
 laserlength equ 150
 
+laserprogbarthreshold equ 4 ; if laser's progbar is below this val, don't draw the laser
+
 firsthealthbar  dw 10 , 10 , 35
 secondhealthbar dw 170 , 10 , 35
 ;**********************
@@ -693,6 +695,15 @@ ret
 key_listener endp
 ;***************************
 laser1 proc 
+
+mov si, offset secondlaserbar
+mov ax, [si]+4
+cmp ax, laserprogbarthreshold 
+ja activatelaser1
+mov secondlaser_on_delay, 1
+ret
+
+activatelaser1:
 mov si , offset secondlaserbar
 decprogbar 8
 
@@ -702,6 +713,15 @@ laser1 endp
 
 ;***************************
 laser2 proc 
+
+mov si, offset firstlaserbar
+mov ax, [si]+4
+cmp ax, laserprogbarthreshold 
+ja activatelaser2
+mov firstlaser_on_delay, 1
+ret
+
+activatelaser2:
 mov si , offset firstlaserbar
 decprogbar 8
 
@@ -797,6 +817,17 @@ secondbarrierrecoverdelay_proc endp
 
 ;***************************
 drawfirstlaser proc
+
+push ax
+mov si, offset firstlaserbar
+mov ax, [si]+4
+cmp ax, laserprogbarthreshold 
+pop ax
+ja drawinglaser1isalowed
+mov firstlaser_on_delay, 1
+ret
+
+drawinglaser1isalowed:
 push ax
 mov al, 1
 sub firstlaser_on_delay, al
@@ -837,6 +868,17 @@ drawfirstlaser endp
 
 ;***************************
 drawsecondlaser proc
+
+push ax
+mov si, offset secondlaserbar
+mov ax, [si]+4
+cmp ax, laserprogbarthreshold 
+pop ax
+ja drawinglaser2isalowed
+mov secondlaser_on_delay, 1
+ret
+
+drawinglaser2isalowed:
 push ax
 mov al, 1
 sub secondlaser_on_delay, al
