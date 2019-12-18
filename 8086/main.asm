@@ -16,6 +16,8 @@ player2 dw 250 , 100
                
 playerstep equ 4
 playerheight equ 15
+playerwidth equ 20
+playercolor equ 5h
 
 bulletHitAmountHealthbar equ 1
 
@@ -32,28 +34,44 @@ laser_bar_recover_delay equ 33
 barrier_bar_recover_delay equ 33
 
 laser_on_delay equ 255
+barrier_on_delay equ 255
 
 laserthickness equ 3
 laserlength equ 150
 
+barrierwidth equ 6
+barrierheight equ 25
+
 laserprogbarthreshold equ 4 ; if laser's progbar is below this val, don't draw the laser
+barrierprogbarthreshold equ 4 
 
 firsthealthbar  dw 10 , 10 , 35
 secondhealthbar dw 170 , 10 , 35
 ;**********************
+
 firstlaserrecoverdelay db laser_bar_recover_delay
 firstlaser_on_delay   db 1
 firstlaserbar   dw 70 , 13 , 20
-firstlaser_cleared db 1
+firstlaser_cleared db 1 ;Intended to be a boolean val
+
 secondlaserrecoverdelay db laser_bar_recover_delay
 secondlaser_on_delay   db 1
 secondlaserbar   dw 230 , 13 , 20
-secondlaser_cleared db 1
+secondlaser_cleared db 1 ;Intended to be a boolean val
+
 ;**********************
+
 firstbarrierrecoverdelay db barrier_bar_recover_delay
+firstbarrier_on_delay   db 1 
 firstbarrierbar  dw 115 , 13 , 35
+firstbarrier_cleared db 1 ;Intended to be a boolean val
+
 secondbarrierrecoverdelay db barrier_bar_recover_delay
+secondbarrier_on_delay  db  1
 secondbarrierbar dw 275 , 13 , 35
+secondbarrier_cleared db 1 ;Intended to be a boolean val
+
+;**********************
 
 ;---width and len
 widthG equ  15
@@ -72,6 +90,8 @@ lenBetweenGB dw 0
 
 temp1 dw ?
 temp2 dw ?
+
+
 .code         
 main proc far            
 mov ax,@data
@@ -192,27 +212,28 @@ mov si , offset secondbarrierbar
 drawprogbar 5, 1000b, 04h
 
 call firstlaserrecoverdelay_proc
-
 call secondlaserrecoverdelay_proc
 
 call firstbarrierrecoverdelay_proc
-
 call secondbarrierrecoverdelay_proc
 
 
 call drawfirstlaser
 call drawsecondlaser
 
+call drawfirstbarrier
+
+
 call a3del_elgamer
 
 mov di , offset player1
-drawrect [di] , [di+2] , 20 , playerheight , 05h ;1st player
+drawrect [di] , [di+2] , playerwidth , playerheight , playercolor ;1st player
 ;
 ;movplayer1
 ;drawrect 159 , 0 , 1 , 200 , 06h
 
 mov di , offset player2
-drawrect [di], [di+2] , 20 , playerheight , 05h ;2nd player
+drawrect [di], [di+2] , playerwidth , playerheight , playercolor ;2nd player
 
 ;mov ah,1
 ;int 16h
@@ -673,7 +694,7 @@ key_listener proc
     call laser2
     dontlaser2:
 
-    ;--------------------------check Barrier------------------------
+    ;--------------------------check barrier------------------------
 
     cmp al, 'k'
     jne dontbarrier1
@@ -731,15 +752,37 @@ laser2 endp
 
 ;***************************
 barrier1 proc 
+
+mov si, offset secondbarrierbar
+mov ax, [si]+4
+cmp ax, barrierprogbarthreshold 
+ja activatebarrier1
+mov secondbarrier_on_delay, 1
+ret
+
+activatebarrier1:
 mov si , offset secondbarrierbar
 decprogbar 8
+
+mov secondbarrier_on_delay, barrier_on_delay
 ret
 barrier1 endp
 
 ;***************************
-barrier2 proc 
+barrier2 proc
+
+mov si, offset firstbarrierbar
+mov ax, [si]+4
+cmp ax, barrierprogbarthreshold 
+ja activatebarrier2
+mov firstbarrier_on_delay, 1
+ret
+
+activatebarrier2:
 mov si , offset firstbarrierbar
 decprogbar 8
+
+mov firstbarrier_on_delay, barrier_on_delay
 ret
 barrier2 endp
 
@@ -927,6 +970,73 @@ pop ax
 ret
 drawsecondlaser endp
 
+;***************************
+drawfirstbarrier proc
+
+push ax
+mov si, offset firstbarrierbar
+mov ax, [si]+4
+cmp ax, barrierprogbarthreshold 
+pop ax
+ja drawingbarrier1isalowed
+mov firstbarrier_on_delay, 1
+ret
+
+drawingbarrier1isalowed:
+push ax
+mov al, 1
+sub firstbarrier_on_delay, al
+cmp firstbarrier_on_delay, al
+pop ax
+ja drawbarrier1
+jmp dont_drawbarrier1
+
+drawbarrier1:
+mov si, offset player1
+
+;pushall
+mov ax, [si] ;player x coordinate
+add ax, playerwidth
+mov temp1, ax
+;barrierYcoordinate = playerY + playerheight/2 - barrierheight/2 = (playerheight-barrierheight)/2 + playerY
+mov ax, 0
+mov ax, playerheight
+sub ax, barrierheight
+mov bl, 2
+idiv bl
+add al, [si+2] ;player y coordinate
+mov temp2, al
+drawsolidrect temp1, temp2, barrierwidth, barrierheight, 08h
+;popall
+
+
+push ax
+mov al, 0
+mov firstbarrier_cleared, al
+pop ax
+
+ret
+
+dont_drawbarrier1:
+mov firstbarrier_on_delay, 1
+mov si, offset player1
+
+;claer the barrier
+push ax
+mov al, 1
+cmp firstbarrier_cleared, al
+je dontclearbarrier1
+
+drawsolidrect temp1, temp2, barrierwidth, barrierheight, 01h
+mov firstbarrier_cleared, al
+
+dontclearbarrier1:
+pop ax
+
+ret
+drawfirstbarrier endp
+
+;***************************
 Collision proc 
     
     pushall

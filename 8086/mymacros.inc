@@ -523,3 +523,18 @@ mov [bx],ax
 		
 	popall
 ENDM   deleteBulletsShoubra
+
+;************************
+prepareplayer1barrierCoordinates macro
+        mov ax, [si] ;player x coordinate
+        add ax, playerwidth
+        mov temp1, ax
+        ;barrierYcoordinate = playerY + playerheight/2 - barrierheight/2 = (playerheight-barrierheight)/2 + playerY
+        mov ax, 0
+        mov ax, playerheight
+        sub ax, barrierheight
+        mov bl, 2
+        idiv bl
+        add al, [si+2] ;player y coordinate
+        mov temp2, al
+ENDM
