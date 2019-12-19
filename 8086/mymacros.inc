@@ -474,13 +474,13 @@ local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , l
 mov si , offset player1
 drawrect  [si] , [si+2] , 20 , playerheight , 0h
 drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h
-		cmp al , 77h
+		cmp al , 48h
 		jz UP
-		cmp al , 73h
+		cmp al , 50h
 		jz down
-		cmp al , 64h
+		cmp al , 4dh
 		jz right
-		cmp al , 61h
+		cmp al , 4bh
 		jnz toend
 		
         left:
@@ -603,7 +603,7 @@ endm clear_screen
   clear_screen
   ;reset_cursor
 
-  showmessage my_name
+  showmessage other_player_name
   showmessage play_req_mes
   request_received_loop: 
 
@@ -637,7 +637,7 @@ endm req_rec_mac
  req_sent_mac macro
  clear_screen
  ;reset_cursor
- showmessage my_name
+ showmessage other_player_name
  showmessage play_req_mes_wait
 
  request_sent_loop:
@@ -690,6 +690,69 @@ endm req_rec_mac
 ; 
 ; endm request_received_mac 
 
+chat_req_rec macro 
+  local request_received_loop , not_accepted ,accepted1
+
+  clear_screen
+  ;reset_cursor
+
+  showmessage other_player_name
+  showmessage chat_req_mes
+  request_received_loop: 
+
+  mov ah,1
+  int 16h
+ 
+  
+  jz request_received_loop
+  
+
+  mov ah,0
+  int 16h
+  mov send_VALUE, al
+  call send_data_proc
+
+  cmp al , 'y' ; request got accepted
+  je accepted1
+  clear_screen
+  jmp far ptr mainmenu_loop
+
+  accepted1:
+  ;mov al, 1
+  ;mov leftPlayer ,al
+   clear_screen
+  call chat_stuff;;;--------------------- chat loop
+
+endm chat_req_rec
+
+
+chat_req_sent macro
+local request_sent_loop,not_accepted
+
+ clear_screen
+ ;reset_cursor
+ showmessage other_player_name
+ showmessage chat_req_mes_wait
+
+ request_sent_loop:
+
+ call receive_data_proc
+ mov al,received_VALUE
+ cmp al , '-' ;'-' is empty receive value char
+ je request_sent_loop
+ 
+ cmp al , 'y' ; request got accepted
+ jne not_accepted
+ 
+ clear_screen
+ call chat_stuff ;------------- chat loop 
+ 
+ not_accepted:
+ clear_screen
+ jmp far ptr mainmenu_loop 
+ 
+ 
+ endm req_sent_mac 
 
 reset_cursor macro
 push ax

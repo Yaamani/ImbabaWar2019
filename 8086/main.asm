@@ -15,10 +15,14 @@ secmess db 10,13,10,13,10,13,10,13,9,'   start chat press ','$'
 name_request_message db 10,13,10,13,10,13,9,'   please enter your name ',10,9,9,'$'
 
 play_req_mes db ' ,you recived playing request press y to accept $'
+chat_req_mes db ' ,you recived chat request press y to accept $'
 
 connection_waiting_mes db ' waiting for the other player to connect $'
 
 play_req_mes_wait db  ' ,waiting for other player answer $'
+
+chat_req_mes_wait db  ' ,waiting for other player answer $'
+
 player1 dw 70 , 100
 player2 dw 250 , 100
 
@@ -29,7 +33,7 @@ player_name db  26        ;MAX NUMBER OF CHARACTERS ALLOWED (25).
             db  ?         ;NUMBER OF CHARACTERS ENTERED BY USER.
 my_name     db  26 dup('$') ;CHARACTERS ENTERED BY USER.
 
-other_player_name db 'player 2 $' ;CHARACTERS ENTERED BY USER.
+other_player_name db  26 dup('$') ;CHARACTERS ENTERED BY USER.
 
 
                
@@ -61,6 +65,9 @@ secondhealthbar dw 170 , 10 , 35
 connection_set db 0 
 leftPlayer db 0  ; for multible devices
 
+right_player_action db '-'
+left_player_action db '-'
+
 received_VALUE db 0 
 send_VALUE db 0 
 
@@ -76,6 +83,15 @@ firstbarrierrecoverdelay db barrier_bar_recover_delay
 firstbarrierbar  dw 115 , 13 , 35
 secondbarrierrecoverdelay db barrier_bar_recover_delay
 secondbarrierbar dw 275 , 13 , 35
+;---------------------------------chat variables---------------------------------
+row  db 0
+col  db 0
+split db '-',07
+rowR db 13
+colR db 0
+sendD db ?
+recD db ?
+;---------------------------------chat variables---------------------------------
 
 ;---width and len
 widthG equ  15
@@ -170,15 +186,31 @@ jne data_received
 jmp no_signal_yet
 
 data_received:
-mov al, '&' 
+mov al, '*' 
 cmp received_VALUE,al
-je dont_say_yes
+jne not_any_body_mes
+mov al, '&' 
+mov send_VALUE,al 
 
-mov al, '&'      ;yes signal
-mov send_VALUE,al
 call send_data_proc
+;call send_name
 
-dont_say_yes:
+mov al, '-' 
+mov send_VALUE,al
+jmp connection_established
+
+not_any_body_mes:
+;call receive_name
+;call send_name
+
+jmp endisa
+
+connection_established:
+;call receive_name
+
+clear_screen
+
+endisa:
 
 ;----------- establish connection----------
 game_over:
@@ -186,7 +218,8 @@ call reset_game ; reset health bar & bullets
 
 
 ;********main menu mode********
-clear_screen
+;clear_screen
+
 ;mainmenu mes,fitmess,secmess
 
 mainmenu_loop :
@@ -210,20 +243,18 @@ mainmenu mes,fitmess,secmess
 
     cmp al , 'p'
     je a_play_request
+    cmp al , 'c'
+    je a_chat_request
+
     jmp far ptr receive
     a_play_request:
  ;   call request_sent_proc
-     req_sent_mac
+    req_sent_mac
+    jmp Receive
 
+    a_chat_request:
+    chat_req_sent ;--------------------   TODO
     
-    
-
-    
-
-
-
-
-
 
 
 receive:
@@ -241,9 +272,19 @@ jne not_a_play_request1
 
 req_rec_mac
 
-
-
 not_a_play_request1:
+
+cmp al , 'c'
+jne not_a_chat_request1
+
+chat_req_rec ;--------------------   TODO
+
+not_a_chat_request1:
+
+
+
+jmp mainmenu_loop
+
 
 jmp mainmenu_loop
 
@@ -768,19 +809,53 @@ key_listener proc
     mov ah,1
     int 16h
     
-    jnz exist
-    ret
-    exist:
+    jnz exist2
+    
+    jmp  receive2
+    
+    exist2:
+    
     mov ah,0
     int 16h
+    
+    mov send_VALUE,ah
+    call send_data_proc 
+    jmp dont_reset_send
+    
+    receive2:
+    
+    mov [send_VALUE],'-'
+    dont_reset_send:
+
+    call receive_data_proc
+    
+    mov al,0
+    cmp leftPlayer,al
+    je i_am_right  ;i am the right player  
+    
+    mov al,received_VALUE
+    mov right_player_action,al
+    mov al,send_VALUE
+    mov left_player_action,al
+    jmp i_was_left
+
+    i_am_right:
+    mov al,send_VALUE
+    mov right_player_action,al
+    mov al,received_VALUE
+    mov left_player_action,al
+
+    i_was_left:
+
     ;-----------------------check player 2 movement--------------------
-    cmp al,'a'
+    mov al, left_player_action
+    cmp al,48h
     je yes_player2
-    cmp al,'w'
+    cmp al,50h
     je yes_player2
-    cmp al,'s'
+    cmp al,4bh
     je yes_player2
-    cmp al,'d'
+    cmp al,4dh
     je yes_player2
     
     jmp no_player2
@@ -788,6 +863,7 @@ key_listener proc
     movplayer2
     no_player2:
     ;-----------------------check player 1 movement--------------------
+    mov ah, right_player_action
     cmp ah,48h
     je yes_player1
     cmp ah,50h
@@ -1091,7 +1167,7 @@ CheckOfCollesion1 proc
    sub dx,ax
    xchg dx,ax
 
-   continue:
+   continue3:
      mov lenBetweenGB,ax
      mov ax,widthB
      cmp lenBetweenGB,ax
@@ -1101,7 +1177,7 @@ CheckOfCollesion1 proc
 
 abslutelen:  ; abslute length
    sub ax,dx
-   jmp continue    
+   jmp continue3    
 
 continueComapring:
    mov ax,yBulletTop
@@ -1453,4 +1529,336 @@ mov player2bullets,bx
 ret
 reset_game endp 
 
+send_name proc
+      mov bx , offset my_name
+      keep_printing:
+      mov cl, [bx]
+		  mov dx , 3FDH		; Line Status Register
+AGAIN2:  	In al , dx 			;Read Line Status
+  		test al , 00100000b
+  		JZ AGAIN2                               ;Not empty
+
+;If empty put the VALUE in Transmit data register
+  		mov dx , 3F8H		; Transmit data register
+  		mov  al , cl
+  		out dx , al
+
+      mov ah,2
+      mov dl,al
+      int 21h
+      
+      cmp cl,'$'
+      je done 
+      
+      inc bx 
+      jmp keep_printing
+      done :
+
+ret
+send_name endp
+
+
+receive_name proc 
+
+mov bx, offset other_player_name
+keep_receiving:
+call receive_data_proc
+mov al ,received_VALUE
+cmp al,'-'
+je keep_receiving
+;mov [bx],al 
+mov ah,2
+mov dl,al
+int 21h
+
+inc bx 
+cmp received_VALUE , '$'
+jne keep_receiving
+
+
+ret 
+receive_name endp
+
+
+;---------------------------------chat procedures ---------------------------
+
+clearscreen proc      
+		mov ah,6       
+		mov al,0        
+		mov bh,7       
+		mov ch,0       
+		mov cl,0        
+		mov dh,24    
+		mov dl,79     
+		int 10h
+		ret
+	clearscreen endp
+	
+	Splitline proc
+		mov cx,80
+		mov ax,0b800h
+		mov es,ax
+		mov di,12*160
+		drawLine:
+			lea si,split
+			movsw
+		loop drawLine
+		
+		ret
+	Splitline endp
+	
+	setcurserUpper proc
+		 mov AH, 02h
+		 mov bh,0
+		 mov DH,[row] ;y
+		 mov DL,[col] ;x  
+		 int 10h 
+		ret
+	setcurserUpper endp
+	
+	setCurserLower proc
+		 mov AH, 02h
+		 mov bh,0
+		 mov DH,[rowR] ;y
+		 mov DL,[colR] ;x  
+		 int 10h 
+		ret
+	setCurserLower endp
+	
+	
+	input proc
+		mov al,0
+		mov ah,0
+		int 16h
+		ret
+	input endp
+		
+	scrollUpperHalf proc 
+		mov ah,6 ; function 6
+		mov al,1 ; scroll by 1 line
+		mov bh,7 ; normal video attribute
+		mov ch,0 ; upper left Y
+		mov cl,0 ; upper left X
+		mov dh,11 ; lower right Y
+		mov dl,79 ; lower right X
+		int 10h
+		ret
+	scrollUpperHalf endp
+	
+	scrollLowerHalf proc 
+		mov ah,6 ; function 6
+		mov al,1 ; scroll by 1 line
+		mov bh,7 ; normal video attribute
+		mov ch,13 ; upper left Y
+		mov cl,0 ; upper left X
+		mov dh,24 ; lower right Y
+		mov dl,79 ; lower right X
+		int 10h
+		ret
+	scrollLowerHalf endp
+	
+	checkinput proc 
+	cmp al,08h ;backspace
+		je BS
+		cmp al,1bh ;escape
+		;;;;;;;;;;;;;;;;;;;;;;;;;
+		je a10
+		jmp cont1
+		a10:  ; terminate
+		jmp endd
+		;;;;;;;;;;;;;;;;;;;;;;;;
+		cont1:
+		cmp al,13 ;enter
+		je enterkey
+		
+		inc [col]  ;inc column
+		call printUpper
+		 cmp [col],79
+		 je incY
+		 ret
+		 incY:
+		 cmp [row],11
+		 jne continue
+		 scroll:
+		 call scrollUpperHalf
+		 mov [col],0
+		 mov [row],11
+		 ret
+		 continue:
+		 mov [col],0
+		 inc [row]
+		 ret
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;		
+		enterkey:
+		 mov [col],0
+		 inc [row]
+		 cmp [row],11
+		 ja scroll
+		 ret
+		 BS:
+		 cmp [col],0
+		 je decY
+		 cont:
+		 dec [col]
+		 call setcurserUpper
+		 mov al,' '
+		call printUpper
+		 ret
+		 decY:
+		 cmp [row],0
+		 je rett
+		 mov [col],79
+		 dec [row]
+		 jmp cont
+			rett:
+		ret
+		endd:
+		call clearscreen
+		mov al,[sendD]
+		mov [sendD],0	;;;;;;;;;;0
+		mov dx,3f8h     ;sending address
+		out dx,al 
+    clear_screen
+    reset_cursor
+		jmp far ptr mainmenu_loop 
+	checkinput endp	
+	
+	
+	
+	printUpper proc 
+		mov [sendD],al
+		mov bh,0
+		mov bl,07h
+		mov cx,1
+		mov ah,9
+		int 10h 
+		ret
+	printUpper endp
+	
+	printLower proc 
+		mov bh,0
+		mov bl,07h
+		mov cx,1
+		mov ah,9
+		int 10h 
+		ret
+	printLower endp
+	
+	
+	
+
+
+sendingRecieving proc 
+
+	checkagain2:
+	mov ah,1
+	int 16h
+	
+	jz recieving
+	
+	sending:
+	call setcurserUpper
+	call input
+	call checkinput
+	mov dx,3fdh
+	in al,dx ;
+	test al,00100000b 	;test fifth bit of sending
+	jz  recieving 	;if not sending then check recieve
+	
+	mov al,[sendD]
+	mov [sendD],0
+	mov dx,3f8h     ;sending address
+	out dx,al   ;mov data to the other port
+	
+
+	recieving:
+	mov dx,3fdh
+	in al,dx ;;
+	test al,1b ;test first bit of recieving
+	
+	jz checkagain2     ;if not sending then check buffer  
+	
+	
+	mov dx,3f8h  ;recieving address
+	in al,dx     ;
+	mov [recD],al
+	call setCurserLower
+	call movCurLower
+	ret
+sendingRecieving endp
+
+movCurLower proc near
+		cmp [recD],08h ;backspace
+		je BSlower
+		cmp [recD],1bh ;escape
+		;;;;;;;;;;;;;;;;;
+		je a11	;to terminate
+		jmp cont2  
+		a11:
+		jmp endde
+		;;;;;;;;;
+		cont2:
+		cmp [recD],13 ;enter
+		je enterkey1
+		inc [colR]
+		call printLower
+		 cmp [colR],79
+		 je incY1
+		 ret
+		 incY1:
+		 cmp [rowR],24
+		 jne continue1
+		 scroll1:
+		 call scrollLowerHalf
+		 mov [colR],0
+		 mov [rowR],24
+		 ret
+		 continue1:
+		 mov [colR],0
+		 inc [rowR]
+		 ret
+		 enterkey1:
+		 mov [colR],0
+		 inc [rowR]
+		 cmp [rowR],24
+		 ja scroll1
+		 ret
+		 BSlower:
+		 cmp [colR],0
+		 je decY1
+		 contLower:
+		 dec [colR]
+		 call setCurserLower
+		 mov al,' '
+		call printLower
+		 ret
+		 decY1:
+		 cmp [rowR],0
+		 je rett1
+		 mov [colR],79
+		 dec [rowR]
+		 jmp contLower
+			rett1:
+		ret
+		endde:
+		;call clearscreen
+    clear_screen
+    reset_cursor
+		jmp far ptr mainmenu_loop 
+movCurLower endp
+
+;---------------------------------chat procedures ---------------------------
+
+chat_stuff proc
+
+  call clearscreen
+	call Splitline
+	;call initialization
+	chat:
+		call sendingRecieving
+	jmp chat
+
+ret
+chat_stuff endp
+;--------------------------------
 end main
