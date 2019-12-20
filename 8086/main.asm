@@ -26,14 +26,20 @@ chat_req_mes_wait db  ' ,waiting for other player answer $'
 player1 dw 70 , 100
 player2 dw 250 , 100
 
-player1Score db 0
-player2Score db 0
+my_score db 0
+other_score db 0
+
+my_score_mes db 10,13 , 'your score :$'
+other_score_mes db  10 ,10 , 'other score :$'
 
 player_name db  26        ;MAX NUMBER OF CHARACTERS ALLOWED (25).
             db  ?         ;NUMBER OF CHARACTERS ENTERED BY USER.
 my_name     db  26 dup('$') ;CHARACTERS ENTERED BY USER.
 
-other_player_name db  26 dup('$') ;CHARACTERS ENTERED BY USER.
+other_player_name db  'the other player $' ;CHARACTERS ENTERED BY USER.
+
+left_player_fire_limit db  0 
+right_player_fire_limit db  0
 
 
                
@@ -99,6 +105,8 @@ lenG   equ  20
 widthB equ  2
 lenB   equ  5 
 
+
+fire_rate_delay equ 10
 ;-----temp memory
 yGamerTop dw 0
 yGamerBottom dw 0
@@ -208,14 +216,13 @@ jmp endisa
 connection_established:
 ;call receive_name
 
-clear_screen
-
 endisa:
 
+clear_screen
 ;----------- establish connection----------
 game_over:
 call reset_game ; reset health bar & bullets 
-
+clear_screen
 
 ;********main menu mode********
 ;clear_screen
@@ -253,7 +260,7 @@ mainmenu mes,fitmess,secmess
     jmp Receive
 
     a_chat_request:
-    chat_req_sent ;--------------------   TODO
+    chat_req_sent 
     
 
 
@@ -303,9 +310,11 @@ clear_screen
 
 ;drawrect 159 , 0 , 1 , 200 , 06h ;pitch division
 
-
-mov dx,0  ;i am using DX , BX for the delay in fire rate so DON'T CHANGE THEM IN YOUR CODE
-mov bx,0  ;
+push dx
+mov dl,0  
+mov left_player_fire_limit , dl
+mov right_player_fire_limit , dl
+pop dx 
 
 mov cx,0
 
@@ -314,46 +323,9 @@ game_loop: ; yamany
 drawsolidrect 0 , 0 , 158 , 3 , 0h ; don't touch
 drawsolidrect 161 , 0 , 158 , 3 , 0h ; don't touch
 
-mov bx,offset firsthealthbar
-add bx,4
-mov ax,[bx]
-cmp ax,5
-jae not_game_over
-
-mov bh ,player2Score ;inc player 2 score
-inc bh
-mov player2Score , bh
-
-jmp far ptr game_over
-not_game_over:
-
-mov bx,offset secondhealthbar
-add bx,4
-mov ax,[bx]
-
-cmp ax,5
-jae not_game_over2
-
-mov bh ,player1Score ;inc player 1 score
-inc bh
-mov player1Score , bh
-
-jmp far ptr game_over
-not_game_over2:
+check_for_win
 
 
-;cmp cx,0ff0h 
-;jb skip
-
-
-;drawsolidrect
-
-;mov si , offset firstlaserbar
-;incprogbar
-;mov si , offset secondlaserbar
-;incprogbar
-;mov si , offset firstlaserbar
-;decprogbar
 mov si , offset firsthealthbar
 drawprogbar 10, 02h, 04h
 mov si , offset secondhealthbar
@@ -453,48 +425,23 @@ pop ax
     call drawbullets
     call player2bullets_problem
     
-    
-    ;mov ah,1
-    ;int 16h
-    ;
-    ;jz nothing_pressed
-    ;    
-    ;mov ah,07
-    ;int 21h
-    ;
-    ;cmp al,'f'
-    ;jne dontfire1
-    ;
-    ;cmp dx,10          ;fire rate delay 
-    ;jb nothing_pressed  ;
-    ;
-    ;call firebullet1
-    ;;skip:
-    ;;cmp cx,0fff0h
-    ;;jb skip2
-    ;dontfire1:
-    ;cmp al,'l'
-    ;jne dontfire2
-    ;
-    ;cmp bx,10          ;fire rate 
-    ;jb nothing_pressed  ;
-    ;    
-    ;call firebullet2
-;
-    ;
-    ;dontfire2:
-    ;
-    ;
-    ;nothing_pressed:
+   
    
     
     call key_listener
 
     mov cx,0
-    
-    inc dx
-    inc bx
-    
+    push dx 
+
+    mov dl , left_player_fire_limit 
+    inc dl
+    mov left_player_fire_limit ,dl
+
+    mov dl , right_player_fire_limit 
+    inc dl
+    mov right_player_fire_limit ,dl
+    pop dx 
+
     call Collesion
     ;skip2:
     ;    inc cx
@@ -566,11 +513,16 @@ firebullet1 proc
             mov bx,offset player1bullets
             mov [bx],si 
     
+            push dx
+            mov dl , 0 
+            mov left_player_fire_limit,dl ; reset fire limit
+            pop dx 
+
             pop si
             pop ax
             pop bx
     
-            mov dx , 0 
+            
             
             ret
 firebullet1 endp
@@ -609,11 +561,16 @@ firebullet2 proc
             mov [bx],di 
     
     
+            
+            push bx 
+            mov bl,0
+            mov right_player_fire_limit,bl ; reset fire limit
+            pop dx 
+            
             pop di
             pop ax
             pop bx
-            
-            mov bx , 0
+
             ret
 firebullet2 endp 
 
@@ -742,19 +699,23 @@ drawBulletFrame endp
 
 drawBulletFrame_black1 proc
   push bx 
+  push si
   mov bx,offset player1bullety         
   mov si,[bx+di]
   drawrect dx,si,5,2,0h
+  pop si 
   pop bx
 ret
 drawBulletFrame_black1 endp
 
 
 drawBulletFrame_black2 proc
-  push bx 
+  push bx
+  push si 
   mov bx,offset player2bullety         
   mov si,[bx+di]
   drawrect dx,si,5,2,0h
+  pop si
   pop bx
 ret
 drawBulletFrame_black2 endp
@@ -785,7 +746,7 @@ loopbullets4:
             cmp dx,300
             jb didnt_go_out4
 	          drawrect dx,si,5,2,0h
-	          deletebullet2 		
+            deletebullet2 		            		 		            		
             sub di,2
             didnt_go_out4:       
             
@@ -833,16 +794,16 @@ key_listener proc
     cmp leftPlayer,al
     je i_am_right  ;i am the right player  
     
-    mov al,received_VALUE
-    mov right_player_action,al
     mov al,send_VALUE
+    mov right_player_action,al
+    mov al,received_VALUE
     mov left_player_action,al
     jmp i_was_left
 
     i_am_right:
-    mov al,send_VALUE
-    mov right_player_action,al
     mov al,received_VALUE
+    mov right_player_action,al
+    mov al,send_VALUE
     mov left_player_action,al
 
     i_was_left:
@@ -878,10 +839,11 @@ key_listener proc
     movplayer1
     no_player1:
     ;--------------------------check Bullets------------------------    
-    cmp al,'f'
+    cmp al,2Ch ;z scan code
     jne dontfire1
     
-    cmp dx,10          ;fire rate delay 
+    mov dl, left_player_fire_limit
+    cmp dl,fire_rate_delay          ;fire rate delay 
     jb dontfire1  ;
     
     call firebullet1
@@ -889,10 +851,11 @@ key_listener proc
     ;cmp cx,0fff0h
     ;jb skip2
     dontfire1:
-    cmp al,'l'
+    cmp ah,2Ch ;z scan code
     jne dontfire2
     
-    cmp bx,10          ;fire rate 
+    mov bl,right_player_fire_limit
+    cmp bl,fire_rate_delay          ;fire rate delay
     jb dontfire2  ;
         
     call firebullet2
@@ -1227,7 +1190,9 @@ CheckOfCollesion1 endp
 
 CheckOfCollesion2 proc
 
-    pushall
+    ;pushall
+
+  mov bx,offset player1 
    mov ax,[bx+2]
    mov yGamerTop,ax
    add ax,widthG  
@@ -1282,12 +1247,21 @@ DecreaseHealth2:
     push si
     mov si , offset firsthealthbar
     decprogbar bulletHitAmountHealthbar
+    pop si
     
-    ;mov bx,player2bullets
+    drawrect [di],[si],5,2,0h
+    push ax
+    mov ax ,4
+    mov [di],ax
+    mov ax ,4
+    mov [si],ax
+    pop ax 
+    ;mov bx,player2bulletx
     ;sub di,bx
     ;deletebullet2
-    pop si
-    deleteBulletsShoubra di,si 
+    ;call test 
+    ;deleteBulletsShoubra di,si 
+    ;i_hate_micro 
 
   ;mov cx,1
   ;mov bh,0
@@ -1298,7 +1272,7 @@ DecreaseHealth2:
     
     
 outt2:
-   popall
+   ;popall
    ret
    
 CheckOfCollesion2 endp
@@ -1854,11 +1828,12 @@ chat_stuff proc
   call clearscreen
 	call Splitline
 	;call initialization
-	chat:
-		call sendingRecieving
-	jmp chat
+	;chat:
+	;	call sendingRecieving
+	;jmp chat
 
 ret
 chat_stuff endp
 ;--------------------------------
+
 end main

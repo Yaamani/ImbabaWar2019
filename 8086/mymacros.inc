@@ -137,6 +137,27 @@ mov cx,1h         ;1 times
 mov bl,028h        ;red (c) on white(f) background
 int 10h
 
+showmessage my_score_mes
+
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,my_score
+add al,48 
+mov cx,1h         ;1 times
+mov bl,048h        
+int 10h
+
+showmessage other_score_mes
+
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,other_score
+add al,48 
+mov cx,1h         ;1 times
+mov bl,048h        
+int 10h
+
+
 endm    mainmenu
 ;---------draw prog bar----------
 drawprogbar macro height, fg_c, bg_c
@@ -585,6 +606,7 @@ mov [bx],ax
 	popall
 ENDM   deleteBulletsShoubra
 
+;-----------------------------
 
 
 clear_screen macro 
@@ -766,3 +788,82 @@ pop dx
 pop ax
 endm reset_cursor
 
+;----------------------------------------------
+
+check_for_win macro
+
+chk_hlth_left
+chk_hlth_right
+
+
+
+endm check_for_win 
+;----------------------------------------------
+chk_hlth_left macro
+local i_lost,other_lost,not_game_over
+
+
+
+mov bx,offset firsthealthbar
+add bx,4
+mov ax,[bx]
+cmp ax,5
+jae not_game_over
+;left player lost 
+mov al , 1
+cmp leftPlayer,al
+je i_lost
+mov bh ,other_score 
+inc bh
+mov other_score , bh
+jmp other_lost
+
+i_lost:
+
+mov bh ,my_score 
+inc bh
+mov my_score , bh
+
+other_lost:
+
+jmp far ptr game_over
+not_game_over:
+
+
+endm chk_hlth_left
+
+;******************************************
+
+chk_hlth_right macro
+local i_lost,other_lost,not_game_over
+
+
+mov bx,offset secondhealthbar
+add bx,4
+mov ax,[bx]
+
+cmp ax,5
+jae not_game_over
+;right player lost
+mov al , 0
+cmp leftPlayer,al
+je i_lost
+mov bh ,other_score 
+inc bh
+mov other_score , bh
+jmp other_lost
+
+i_lost:
+
+mov bh ,my_score 
+inc bh
+mov my_score , bh
+
+other_lost:
+
+
+jmp far ptr game_over
+not_game_over:
+
+
+endm chk_hlth_right 
