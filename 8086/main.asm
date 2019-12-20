@@ -33,10 +33,11 @@ my_score_mes db 10,13 , 'your score :$'
 other_score_mes db  10 ,10 , 'other score :$'
 
 player_name db  26        ;MAX NUMBER OF CHARACTERS ALLOWED (25).
-            db  ?         ;NUMBER OF CHARACTERS ENTERED BY USER.
+player_name_length db  ?         ;NUMBER OF CHARACTERS ENTERED BY USER.
 my_name     db  26 dup('$') ;CHARACTERS ENTERED BY USER.
 
-other_player_name db  'the other player $' ;CHARACTERS ENTERED BY USER.
+other_name_length db  ? 
+other_player_name db  26 dup('$') ;CHARACTERS ENTERED BY USER.
 
 left_player_fire_limit db  0 
 right_player_fire_limit db  0
@@ -90,13 +91,20 @@ firstbarrierbar  dw 115 , 13 , 35
 secondbarrierrecoverdelay db barrier_bar_recover_delay
 secondbarrierbar dw 275 , 13 , 35
 ;---------------------------------chat variables---------------------------------
-row  db 0
-col  db 0
-split db '-',07
-rowR db 13
-colR db 0
-sendD db ?
-recD db ?
+RECIEVE_char       db  ?
+send_char          db  ?
+
+CURSOR_UPPER        dw  0
+CURSOR_UPPER_NAME   dw  0
+
+CURSOR_LOWER        dw  0d00h
+CURSOR_LOWER_NAME   dw  0d00h
+
+;SEPARATION_LINE     db  '________________________________________$'
+SEPARATION_LINE     db  '========================================$'
+
+open_parenthesis db '($'
+close_parenthesis db '):$'
 ;---------------------------------chat variables---------------------------------
 
 ;---width and len
@@ -199,22 +207,21 @@ cmp received_VALUE,al
 jne not_any_body_mes
 mov al, '&' 
 mov send_VALUE,al 
-
 call send_data_proc
-;call send_name
+call send_name
 
 mov al, '-' 
 mov send_VALUE,al
 jmp connection_established
 
 not_any_body_mes:
-;call receive_name
-;call send_name
+call receive_name
+call send_name
 
 jmp endisa
 
 connection_established:
-;call receive_name
+call receive_name
 
 endisa:
 
@@ -1504,7 +1511,7 @@ ret
 reset_game endp 
 
 send_name proc
-      mov bx , offset my_name
+      mov bx , offset player_name_length
       keep_printing:
       mov cl, [bx]
 		  mov dx , 3FDH		; Line Status Register
@@ -1534,13 +1541,13 @@ send_name endp
 
 receive_name proc 
 
-mov bx, offset other_player_name
+mov bx, offset other_name_length
 keep_receiving:
 call receive_data_proc
 mov al ,received_VALUE
 cmp al,'-'
 je keep_receiving
-;mov [bx],al 
+mov [bx],al 
 mov ah,2
 mov dl,al
 int 21h
@@ -1556,284 +1563,272 @@ receive_name endp
 
 ;---------------------------------chat procedures ---------------------------
 
-clearscreen proc      
-		mov ah,6       
-		mov al,0        
-		mov bh,7       
-		mov ch,0       
-		mov cl,0        
-		mov dh,24    
-		mov dl,79     
-		int 10h
-		ret
-	clearscreen endp
-	
-	Splitline proc
-		mov cx,80
-		mov ax,0b800h
-		mov es,ax
-		mov di,12*160
-		drawLine:
-			lea si,split
-			movsw
-		loop drawLine
-		
-		ret
-	Splitline endp
-	
-	setcurserUpper proc
-		 mov AH, 02h
-		 mov bh,0
-		 mov DH,[row] ;y
-		 mov DL,[col] ;x  
-		 int 10h 
-		ret
-	setcurserUpper endp
-	
-	setCurserLower proc
-		 mov AH, 02h
-		 mov bh,0
-		 mov DH,[rowR] ;y
-		 mov DL,[colR] ;x  
-		 int 10h 
-		ret
-	setCurserLower endp
-	
-	
-	input proc
-		mov al,0
-		mov ah,0
-		int 16h
-		ret
-	input endp
-		
-	scrollUpperHalf proc 
-		mov ah,6 ; function 6
-		mov al,1 ; scroll by 1 line
-		mov bh,7 ; normal video attribute
-		mov ch,0 ; upper left Y
-		mov cl,0 ; upper left X
-		mov dh,11 ; lower right Y
-		mov dl,79 ; lower right X
-		int 10h
-		ret
-	scrollUpperHalf endp
-	
-	scrollLowerHalf proc 
-		mov ah,6 ; function 6
-		mov al,1 ; scroll by 1 line
-		mov bh,7 ; normal video attribute
-		mov ch,13 ; upper left Y
-		mov cl,0 ; upper left X
-		mov dh,24 ; lower right Y
-		mov dl,79 ; lower right X
-		int 10h
-		ret
-	scrollLowerHalf endp
-	
-	checkinput proc 
-	cmp al,08h ;backspace
-		je BS
-		cmp al,1bh ;escape
-		;;;;;;;;;;;;;;;;;;;;;;;;;
-		je a10
-		jmp cont1
-		a10:  ; terminate
-		jmp endd
-		;;;;;;;;;;;;;;;;;;;;;;;;
-		cont1:
-		cmp al,13 ;enter
-		je enterkey
-		
-		inc [col]  ;inc column
-		call printUpper
-		 cmp [col],79
-		 je incY
-		 ret
-		 incY:
-		 cmp [row],11
-		 jne continue
-		 scroll:
-		 call scrollUpperHalf
-		 mov [col],0
-		 mov [row],11
-		 ret
-		 continue:
-		 mov [col],0
-		 inc [row]
-		 ret
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;		
-		enterkey:
-		 mov [col],0
-		 inc [row]
-		 cmp [row],11
-		 ja scroll
-		 ret
-		 BS:
-		 cmp [col],0
-		 je decY
-		 cont:
-		 dec [col]
-		 call setcurserUpper
-		 mov al,' '
-		call printUpper
-		 ret
-		 decY:
-		 cmp [row],0
-		 je rett
-		 mov [col],79
-		 dec [row]
-		 jmp cont
-			rett:
-		ret
-		endd:
-		call clearscreen
-		mov al,[sendD]
-		mov [sendD],0	;;;;;;;;;;0
-		mov dx,3f8h     ;sending address
-		out dx,al 
-    clear_screen
-    reset_cursor
-		jmp far ptr mainmenu_loop 
-	checkinput endp	
-	
-	
-	
-	printUpper proc 
-		mov [sendD],al
-		mov bh,0
-		mov bl,07h
-		mov cx,1
-		mov ah,9
-		int 10h 
-		ret
-	printUpper endp
-	
-	printLower proc 
-		mov bh,0
-		mov bl,07h
-		mov cx,1
-		mov ah,9
-		int 10h 
-		ret
-	printLower endp
-	
-	
-	
+disp_separation PROC
+   mov dx, 0c00h
+   mov ah, 2
+   int 10h
+   mov ah, 9
+   mov dx, offset SEPARATION_LINE
+   int 21h
+
+    ret 
+disp_separation endp
+
+send_char_proc PROC
+ ;Check that Transmitter Holding Register is Empty
+		            mov dx, 3FDH		;Line Status Register
+CHECK_SEND:  	    In al, dx 			;Read Line Status
+  		            AND al, 00100000b
+  		            JZ CHECK_SEND
+
+                  ;If empty put the send_char in Transmit data register
+              		mov dx, 3F8H	;Transmit data register
+              		mov al, send_char       ;send_char
+              		out dx, al
 
 
-sendingRecieving proc 
+ret 
+send_char_proc endp 
 
-	checkagain2:
-	mov ah,1
-	int 16h
-	
-	jz recieving
-	
-	sending:
-	call setcurserUpper
-	call input
-	call checkinput
-	mov dx,3fdh
-	in al,dx ;
-	test al,00100000b 	;test fifth bit of sending
-	jz  recieving 	;if not sending then check recieve
-	
-	mov al,[sendD]
-	mov [sendD],0
-	mov dx,3f8h     ;sending address
-	out dx,al   ;mov data to the other port
-	
 
-	recieving:
-	mov dx,3fdh
-	in al,dx ;;
-	test al,1b ;test first bit of recieving
-	
-	jz checkagain2     ;if not sending then check buffer  
-	
-	
-	mov dx,3f8h  ;recieving address
-	in al,dx     ;
-	mov [recD],al
-	call setCurserLower
-	call movCurLower
-	ret
-sendingRecieving endp
+disp_names PROC
+      pushall
+      ;------------------------------- first name -------------------------------
+      ;set cursor
+      mov dx, CURSOR_UPPER_NAME
+      mov ah, 2
+      int 10h
+      
+      mov ah,9h
+      mov dx,offset open_parenthesis
+      int 21h
 
-movCurLower proc near
-		cmp [recD],08h ;backspace
-		je BSlower
-		cmp [recD],1bh ;escape
-		;;;;;;;;;;;;;;;;;
-		je a11	;to terminate
-		jmp cont2  
-		a11:
-		jmp endde
-		;;;;;;;;;
-		cont2:
-		cmp [recD],13 ;enter
-		je enterkey1
-		inc [colR]
-		call printLower
-		 cmp [colR],79
-		 je incY1
-		 ret
-		 incY1:
-		 cmp [rowR],24
-		 jne continue1
-		 scroll1:
-		 call scrollLowerHalf
-		 mov [colR],0
-		 mov [rowR],24
-		 ret
-		 continue1:
-		 mov [colR],0
-		 inc [rowR]
-		 ret
-		 enterkey1:
-		 mov [colR],0
-		 inc [rowR]
-		 cmp [rowR],24
-		 ja scroll1
-		 ret
-		 BSlower:
-		 cmp [colR],0
-		 je decY1
-		 contLower:
-		 dec [colR]
-		 call setCurserLower
-		 mov al,' '
-		call printLower
-		 ret
-		 decY1:
-		 cmp [rowR],0
-		 je rett1
-		 mov [colR],79
-		 dec [rowR]
-		 jmp contLower
-			rett1:
-		ret
-		endde:
-		;call clearscreen
-    clear_screen
-    reset_cursor
-		jmp far ptr mainmenu_loop 
-movCurLower endp
+      mov dx, CURSOR_UPPER_NAME
+      add dx , 1
+      mov ah, 2
+      int 10h
 
+      mov ah,9h
+      mov dx,offset my_name
+      int 21h
+
+      mov dx, CURSOR_UPPER_NAME
+      add dl , player_name_length
+      add dx , 1
+      mov ah, 2
+      int 10h
+
+      mov ah,9h
+      mov dx,offset close_parenthesis
+      int 21h
+      ;------------------------------- second name -------------------------------
+      ;set cursor
+      mov dx, CURSOR_LOWER_NAME
+      mov ah, 2
+      int 10h
+      
+      mov ah,9h
+      mov dx,offset open_parenthesis
+      int 21h
+
+      mov dx, CURSOR_LOWER_NAME
+      add dx , 1
+      mov ah, 2
+      int 10h
+
+      mov ah,9h
+      mov dx,offset other_player_name
+      int 21h
+
+      
+      mov dx, CURSOR_LOWER_NAME
+      add dl, other_name_length
+      add dx , 1
+      mov ah, 2
+      int 10h
+
+      mov ah,9h
+      mov dx,offset close_parenthesis
+      int 21h
+
+      popall
+ret 
+disp_names endp
+
+main_chat_proc proc
+                    mov ax , CURSOR_UPPER
+                    add al , player_name_length
+                    add al , 3
+                    mov CURSOR_UPPER , ax
+
+                    mov ax , CURSOR_LOWER
+                    add al , other_name_length
+                    add al ,3
+                    mov CURSOR_LOWER , ax
+
+                    ;Display SEPARATION_LINE
+                    call disp_separation
+                    call disp_names
+
+chat_loop:
+                    ;Check that Data Ready
+                    mov dx, 3FDH		; Line Status Register
+                    in al, dx 
+                    AND al, 1
+                    JZ KEY_INPUT
+
+                    ;If Ready read the RECIEVE_char in Receive data register
+                    mov dx, 03F8H
+                    in al, dx 
+                    mov RECIEVE_char, al
+
+
+                    ;set cursor
+                    mov dx, CURSOR_LOWER
+                    mov ah, 2
+                    int 10h
+
+
+
+
+                    mov al , RECIEVE_char
+
+                    cmp al, 08h
+                    jne not_backspace2
+
+                    mov ah, 2
+                    mov dl, 08h 
+                    int 21h
+
+                    mov ah, 2
+                    mov dl, 20h 
+                    int 21h
+
+                    ;mov ah, 2
+                    ;mov dl, 08h 
+                    ;int 21h
+
+                    not_backspace2: 
+
+                    cmp al, 27
+                    jne not_escape2
+                    
+                    jmp exit_chat
+                    not_escape2: 
+                    
+
+
+
+                    ;Display RECIEVE_char 
+                    mov ah, 2
+                    mov dl, RECIEVE_char 
+                    int 21h
+
+                    ;get cursor & save in memory
+                    mov ah,3h 
+                    mov bh,0h 
+                    int 10h
+
+
+                    cmp dh, 24
+                    jb no_scrol2
+
+                    SCROL 0, 0dh, 39, 24
+                    ;SCROL 0, 0dh, 39, 2
+                  
+
+                    no_scrol2:
+                    mov CURSOR_LOWER, dx
+
+KEY_INPUT:                   
+                   
+                    mov ah, 1 
+                    int 16h
+                    jz chat_loop
+
+                    ;Consume char
+                    mov ah, 0 
+                    int 16h
+
+                    cmp al, 0dh
+                    jne not_enter
+                    mov al, 0Ah
+
+                    not_enter: 
+                    
+                    cmp al, 27
+                    jne not_escape
+                    mov send_char,al
+                    call send_char_proc
+                    jmp exit_chat
+                    not_escape: 
+
+                    cmp al, 08h
+                    jne not_backspace
+                    
+                    mov ah, 2
+                    mov dl, 08h 
+                    int 21h
+
+                    mov ah, 2
+                    mov dl, 20h 
+                    int 21h
+
+                    mov ah, 2
+                    mov dl, 08h 
+                    int 21h
+
+                    not_backspace: 
+
+
+                    mov send_char, al
+                   
+                  call send_char_proc
+                  ;set cursor
+                    mov dx, CURSOR_UPPER
+                    mov ah, 2
+                    int 10h
+
+
+
+
+                    ;Display send_char 
+                    mov ah, 2
+                    mov dl, send_char 
+                    int 21h
+
+
+
+                        
+
+
+                    ;get cursor & save in memory
+                    mov ah,3h 
+                    mov bh,0h 
+                    int 10h
+
+                    cmp dh, 11
+                    jb no_scrol1
+
+                    SCROL 0, 0, 39, 11
+                    ;SCROL 0, 0, 39, 11
+
+                    no_scrol1:
+                    mov CURSOR_UPPER, dx
+ 
+                    jmp chat_loop
+
+                    exit_chat: 
+ret
+main_chat_proc endp
 ;---------------------------------chat procedures ---------------------------
 
+
 chat_stuff proc
-
-  call clearscreen
-	call Splitline
-	;call initialization
-	;chat:
-	;	call sendingRecieving
-	;jmp chat
-
+call main_chat_proc
+clear_screen
 ret
-chat_stuff endp
+chat_stuff endp 
 ;--------------------------------
 
 end main

@@ -744,7 +744,7 @@ chat_req_rec macro
   ;mov leftPlayer ,al
    clear_screen
   call chat_stuff;;;--------------------- chat loop
-
+jmp mainmenu_loop
 endm chat_req_rec
 
 
@@ -768,7 +768,7 @@ local request_sent_loop,not_accepted
  
  clear_screen
  call chat_stuff ;------------- chat loop 
- 
+ jmp mainmenu_loop
  not_accepted:
  clear_screen
  jmp far ptr mainmenu_loop 
@@ -867,3 +867,37 @@ not_game_over:
 
 
 endm chk_hlth_right 
+
+
+
+
+
+SCROL               MACRO UPPER_LEFT_X, UPPER_LEFT_Y, LOWER_RIGHT_X, LOWER_RIGHT_Y
+                    push dx
+
+                    mov ah,6       ; function 6
+                    mov al,1        ; scroll by 1 line    
+                    mov bh,0       ; normal video attribute         
+                    mov ch, UPPER_LEFT_Y      ; upper left Y
+                    mov cl, UPPER_LEFT_X        ; upper left X
+                    mov dh, LOWER_RIGHT_Y     ; lower right Y
+                    mov dl, LOWER_RIGHT_X      ; lower right X 
+                    int 10h 
+
+                    pop dx
+
+                    mov ah,3h 
+                    mov bh,0h 
+                    int 10h
+
+                    dec dh
+
+                    mov ah, 2
+                    int 10h
+
+                    call disp_names    
+                    ENDM
+
+
+
+
