@@ -395,15 +395,28 @@ mov si , offset player2
         
         mov al, 2
         cmp secondlaser_on_delay, al
-        jbe dontclear1m
+        jbe dontclear1laser_m
 
         drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h ;claer laser upon mvement
         ;drawsolidrect  [si] , [si+2] , laserlength , playerheight , 0h
 		;mov ah,0
         ;int 16h
 
-        dontclear1m:
+        dontclear1laser_m:
         pop ax
+
+        push ax
+        mov al, 2
+        cmp secondbarrier_on_delay, al
+        jbe dontclear1barrier_m
+
+;pushall
+clearplayer2barrier
+;popall
+
+dontclear1barrier_m:
+        pop ax
+
 
 		cmp ah , 48h
 		jz UP
@@ -443,11 +456,23 @@ drawrect  [si] , [si+2] , 20 , playerheight , 0h ;clear player upon movement
         push ax
         mov al, 2
         cmp firstlaser_on_delay, al
-        jbe dontclear2m
+        jbe dontclear2laser_m
 
-drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h ;clear laser upon movement
+        drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h ;clear laser upon movement
 
-dontclear2m:
+dontclear2laser_m:
+        pop ax
+
+        push ax
+        mov al, 2
+        cmp firstbarrier_on_delay, al
+        jbe dontclear2barrier_m
+
+;pushall
+clearplayer1barrier
+;popall
+
+dontclear2barrier_m:
         pop ax
 		cmp al , 77h
 		jz UP
@@ -479,7 +504,21 @@ dontclear2m:
 
 endm Movplayer2
 
+;*************************
+clearplayer1barrier macro
+    prepareplayer1barrierCoordinates
+    drawsolidrect temp1, temp2, barrierwidth, barrierheight, 0h
+endm clearplayer1barrier
 
+
+;*************************
+clearplayer2barrier macro
+    prepareplayer2barrierCoordinates
+    drawsolidrect temp1, temp2, barrierwidth, barrierheight, 0h
+endm clearplayer1barrier
+
+
+;*************************
 deleteBulletsShoubra Macro Xbullet,Ybullet
 
 	pushall
@@ -526,6 +565,7 @@ ENDM   deleteBulletsShoubra
 
 ;************************
 prepareplayer1barrierCoordinates macro
+        mov si, offset player1
         mov ax, [si] ;player x coordinate
         add ax, playerwidth
         mov temp1, ax
@@ -535,6 +575,24 @@ prepareplayer1barrierCoordinates macro
         sub ax, barrierheight
         mov bl, 2
         idiv bl
+        mov ah, 0
         add al, [si+2] ;player y coordinate
-        mov temp2, al
+        mov temp2, ax
+ENDM
+
+;************************
+prepareplayer2barrierCoordinates macro
+        mov si, offset player2
+        mov ax, [si] ;player x coordinate
+        sub ax, barrierwidth
+        mov temp1, ax
+        ;barrierYcoordinate = playerY + playerheight/2 - barrierheight/2 = (playerheight-barrierheight)/2 + playerY
+        mov ax, 0
+        mov ax, playerheight
+        sub ax, barrierheight
+        mov bl, 2
+        idiv bl
+        mov ah, 0
+        add al, [si+2] ;player y coordinate
+        mov temp2, ax
 ENDM

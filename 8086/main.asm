@@ -39,7 +39,7 @@ barrier_on_delay equ 255
 laserthickness equ 3
 laserlength equ 150
 
-barrierwidth equ 6
+barrierwidth equ 4
 barrierheight equ 25
 
 laserprogbarthreshold equ 4 ; if laser's progbar is below this val, don't draw the laser
@@ -222,6 +222,7 @@ call drawfirstlaser
 call drawsecondlaser
 
 call drawfirstbarrier
+call drawsecondbarrier
 
 
 call a3del_elgamer
@@ -861,14 +862,15 @@ secondbarrierrecoverdelay_proc endp
 ;***************************
 drawfirstlaser proc
 
-push ax
+;push ax
 mov si, offset firstlaserbar
 mov ax, [si]+4
 cmp ax, laserprogbarthreshold 
-pop ax
+;pop ax
 ja drawinglaser1isalowed
 mov firstlaser_on_delay, 1
-ret
+jmp dont_drawlaser1
+
 
 drawinglaser1isalowed:
 push ax
@@ -919,7 +921,7 @@ cmp ax, laserprogbarthreshold
 pop ax
 ja drawinglaser2isalowed
 mov secondlaser_on_delay, 1
-ret
+jmp dont_drawlaser2
 
 drawinglaser2isalowed:
 push ax
@@ -980,7 +982,7 @@ cmp ax, barrierprogbarthreshold
 pop ax
 ja drawingbarrier1isalowed
 mov firstbarrier_on_delay, 1
-ret
+jmp dont_drawbarrier1
 
 drawingbarrier1isalowed:
 push ax
@@ -992,20 +994,8 @@ ja drawbarrier1
 jmp dont_drawbarrier1
 
 drawbarrier1:
-mov si, offset player1
 
-;pushall
-mov ax, [si] ;player x coordinate
-add ax, playerwidth
-mov temp1, ax
-;barrierYcoordinate = playerY + playerheight/2 - barrierheight/2 = (playerheight-barrierheight)/2 + playerY
-mov ax, 0
-mov ax, playerheight
-sub ax, barrierheight
-mov bl, 2
-idiv bl
-add al, [si+2] ;player y coordinate
-mov temp2, al
+prepareplayer1barrierCoordinates
 drawsolidrect temp1, temp2, barrierwidth, barrierheight, 08h
 ;popall
 
@@ -1027,7 +1017,9 @@ mov al, 1
 cmp firstbarrier_cleared, al
 je dontclearbarrier1
 
-drawsolidrect temp1, temp2, barrierwidth, barrierheight, 01h
+clearplayer1barrier
+
+mov al, 1
 mov firstbarrier_cleared, al
 
 dontclearbarrier1:
@@ -1035,6 +1027,61 @@ pop ax
 
 ret
 drawfirstbarrier endp
+
+;***************************
+drawsecondbarrier proc
+
+push ax
+mov si, offset secondbarrierbar
+mov ax, [si]+4
+cmp ax, barrierprogbarthreshold 
+pop ax
+ja drawingbarrier2isalowed
+mov secondbarrier_on_delay, 1
+jmp dont_drawbarrier2
+
+drawingbarrier2isalowed:
+push ax
+mov al, 1
+sub secondbarrier_on_delay, al
+cmp secondbarrier_on_delay, al
+pop ax
+ja drawbarrier2
+jmp dont_drawbarrier2
+
+drawbarrier2:
+prepareplayer2barrierCoordinates
+drawsolidrect temp1, temp2, barrierwidth, barrierheight, 08h
+;popall
+
+
+push ax
+mov al, 0
+mov secondbarrier_cleared, al
+pop ax
+
+ret
+
+dont_drawbarrier2:
+mov secondbarrier_on_delay, 1
+mov si, offset player2
+
+;claer the barrier
+push ax
+mov al, 1
+cmp secondbarrier_cleared, al
+je dontclearbarrier2
+
+clearplayer2barrier
+
+mov al, 1
+mov secondbarrier_cleared, al
+
+dontclearbarrier2:
+pop ax
+
+ret
+drawsecondbarrier endp
 
 ;***************************
 Collision proc 
