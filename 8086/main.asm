@@ -100,11 +100,19 @@ CURSOR_UPPER_NAME   dw  0
 CURSOR_LOWER        dw  0d00h
 CURSOR_LOWER_NAME   dw  0d00h
 
+upper_limit db 11 
+lower_limit db 24
+separation_pos dw 0c00h
+
+kill_me_upper db 0 
+kill_me_lower db 13
+ 
 ;SEPARATION_LINE     db  '________________________________________$'
 SEPARATION_LINE     db  '========================================$'
 
 open_parenthesis db '($'
 close_parenthesis db '):$'
+
 ;---------------------------------chat variables---------------------------------
 
 ;---width and len
@@ -157,10 +165,12 @@ out dx,al
 
 
 
-
 ;********video mode********
 mov ax,13h
 int 10h
+
+;jmp far ptr game_loop
+
 ;*********intro message****************;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; intromenu intromessage				   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; MOV     CX, 1fH						   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -871,7 +881,7 @@ key_listener proc
     dontfire2:
     ;--------------------------check Laser------------------------
 
-    cmp al, ';'
+    cmp al, 'r'
     jne dontlaser1
     
     
@@ -881,7 +891,7 @@ key_listener proc
     cmp al, 'e'
     jne dontlaser2
 
-    call laser2
+    ;call laser2
     dontlaser2:
 
     ;--------------------------check Barrier------------------------
@@ -900,6 +910,16 @@ key_listener proc
     dontbarrier2:
     
     ;nothing_pressed:
+
+    cmp al, 10h ; q char 
+    jne dontchat
+    call ingame_chat_stuff
+    dontchat:
+
+    cmp ah, 10h ; q char 
+    jne dontchat1
+    call ingame_chat_stuff
+    dontchat1:
 
     mov al,0
 ret
@@ -1564,7 +1584,7 @@ receive_name endp
 ;---------------------------------chat procedures ---------------------------
 
 disp_separation PROC
-   mov dx, 0c00h
+   mov dx, separation_pos
    mov ah, 2
    int 10h
    mov ah, 9
@@ -1730,10 +1750,12 @@ chat_loop:
                     int 10h
 
 
-                    cmp dh, 24
+                    cmp dh, lower_limit
                     jb no_scrol2
-
-                    SCROL 0, 0dh, 39, 24
+                    
+                    mov ax , CURSOR_LOWER_NAME
+                    
+                    SCROL 0, kill_me_lower , 39, lower_limit
                     ;SCROL 0, 0dh, 39, 2
                   
 
@@ -1807,10 +1829,12 @@ KEY_INPUT:
                     mov bh,0h 
                     int 10h
 
-                    cmp dh, 11
+                    cmp dh, upper_limit;---------------------------
                     jb no_scrol1
 
-                    SCROL 0, 0, 39, 11
+                    
+                     
+                    SCROL 0, kill_me_upper, 39, upper_limit
                     ;SCROL 0, 0, 39, 11
 
                     no_scrol1:
@@ -1825,10 +1849,85 @@ main_chat_proc endp
 
 
 chat_stuff proc
+
+call set_main_chat
+
 call main_chat_proc
 clear_screen
 ret
 chat_stuff endp 
 ;--------------------------------
+ingame_chat_stuff proc
+clear_screen
+call set_ingame_var
+reset_cursor
+call main_chat_proc
+clear_screen
+ret
+ingame_chat_stuff endp 
+
+;--------------------------------
+
+set_ingame_var proc
+pushall
+mov ax , 1200h
+mov CURSOR_UPPER   ,ax
+mov CURSOR_UPPER_NAME,ax
+
+mov ax, 1500h
+mov CURSOR_LOWER  , ax
+mov CURSOR_LOWER_NAME  , ax 
+
+mov al , 20
+mov upper_limit,al
+
+mov al ,22
+mov lower_limit ,al
+
+mov ax , 1100h
+mov separation_pos , ax
+
+mov al , 18
+mov kill_me_upper ,al 
+mov al , 21
+mov kill_me_lower, al 
+
+
+
+popall
+ret 
+set_ingame_var endp
+
+;---------------------
+
+set_main_chat proc
+pushall
+mov ax , 0
+mov CURSOR_UPPER       ,ax
+mov CURSOR_UPPER_NAME  ,ax
+
+mov ax , 0d00h
+mov CURSOR_LOWER  , ax
+mov CURSOR_LOWER_NAME  ,ax 
+
+mov al , 11
+mov upper_limit,al
+mov al ,24
+mov lower_limit ,al
+
+mov ax , 0c00h
+mov separation_pos , ax
+
+mov al , 0 
+mov kill_me_upper ,al 
+mov al , 13
+mov kill_me_lower, al 
+
+
+
+popall
+ret 
+set_main_chat endp
+
 
 end main

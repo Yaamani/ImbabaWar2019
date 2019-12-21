@@ -468,7 +468,7 @@ mov si , offset player2
 		
         down:
         mov bx, [si+2]
-        cmp bx , 180
+        cmp bx , 140
         ja reach_down_limit 
         
         mov bx , playerstep
@@ -530,7 +530,7 @@ drawsolidrect  [si] , [si+2] , laserlength , laserthickness , 0h
 
 		down:
         mov bx, [si+2]
-        cmp bx , 180
+        cmp bx , 140
         ja reach_down_limit 
         
         mov bx , playerstep
