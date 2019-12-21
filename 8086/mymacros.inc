@@ -115,6 +115,12 @@ endm    intromenu
 ;----------main menu--------------
 mainmenu macro mymessage,fitmess,secmess
 
+; mov ax,0600h ;reset
+; mov bh,0 
+; mov cx,0 
+; mov dx,184fh 
+; int 10h  
+
 showmessage mymessage
 showmessage fitmess
 mov ah,9          ;display
@@ -130,6 +136,27 @@ mov al,43h        ;letter c
 mov cx,1h         ;1 times
 mov bl,028h        ;red (c) on white(f) background
 int 10h
+
+showmessage my_score_mes
+
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,my_score
+add al,48 
+mov cx,1h         ;1 times
+mov bl,048h        
+int 10h
+
+showmessage other_score_mes
+
+mov ah,9          ;display
+mov bh,0          ;page 0
+mov al,other_score
+add al,48 
+mov cx,1h         ;1 times
+mov bl,048h        
+int 10h
+
 
 endm    mainmenu
 ;---------draw prog bar----------
@@ -304,6 +331,15 @@ deletebullet1 MACRO
 push ax
 push bx
 push si 
+;-----------------------------clear from screen----------------
+mov bx,offset player1bulletx
+mov ax,[bx+di]
+
+mov bx,offset player1bullety
+mov si,[bx+di]
+
+drawrect ax,si,5,2,0h
+
 ;-------------------------swap x position----------------------
 mov bx,offset player1bulletx
 
@@ -327,7 +363,7 @@ pop si
 pop bx
 pop ax
 
-endm
+endm deletebullet1
 ;------------------------------------ delete bullet 2 ------------------------------------
 
 deletebullet2 MACRO 
@@ -385,7 +421,7 @@ pop ax
 endm
 ;*****************************
 Movplayer1	Macro
-local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
+local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check , reach_down_limit , reach_up_limit,reach_right_limit
 mov si , offset player2
         drawrect  [si] , [si+2] , 20 , playerheight , 0h
         push ax
@@ -420,35 +456,62 @@ dontclear1barrier_m:
 		cmp ah , 48h
 		jz UP
 		cmp ah , 50h
-		jz bridgetodown
+		jz down
 		cmp ah , 4dh
-		jz bridgetoright
+		jz right
 		cmp ah , 4bh
-		jnz bridgetoend
-		left:mov bx , playerstep
+		jnz toend
+        
+        left:
+        mov bx, [si]
+        cmp bx , 165
+        jb reach_left_limit
+
+        mov bx , playerstep
 		sub [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
-		jmp toend
-		bridgetoend: jmp toend
-		bridgetoright: jmp right
-		bridgetodown: jmp down
-		UP:mov bx , playerstep
+
+        reach_left_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        jmp toend
+
+        UP:
+        mov bx, [si+2]
+        cmp bx , 25 
+        jb reach_up_limit
+
+        mov bx , playerstep
         sub [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+
+        reach_up_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		down:mov bx , playerstep
+		
+        down:
+        mov bx, [si+2]
+        cmp bx , 140
+        ja reach_down_limit 
+        
+        mov bx , playerstep
 		add [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        
+        reach_down_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		right:mov bx , playerstep
+		
+        right:
+        mov bx, [si]
+        cmp bx , 295
+        ja reach_right_limit
+        mov bx , playerstep
 		add [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        reach_right_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		toend:
 
 endm Movplayer1
 ;-------------------------------------------------------------------
 Movplayer2	Macro
-local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check
+local toend , bridgetoend , bridgetoright , right , bridgetodown , down , UP , left , check , reach_down_limit , reach_up_limit,reach_right_limit,reach_left_limit
 mov si , offset player1
 drawrect  [si] , [si+2] , 20 , playerheight , 0h ;clear player upon movement
 
@@ -474,32 +537,61 @@ clearplayer1barrier
 
 dontclear2barrier_m:
         pop ax
-		cmp al , 77h
+		cmp al , 48h
 		jz UP
-		cmp al , 73h
-		jz bridgetodown
-		cmp al , 64h
-		jz bridgetoright
-		cmp al , 61h
-		jnz bridgetoend
-		left:mov bx , playerstep
+		cmp al , 50h
+		jz down
+		cmp al , 4dh
+		jz right
+		cmp al , 4bh
+		jnz toend
+		
+        left:
+        mov bx, [si]
+        cmp bx , 5
+        jb reach_left_limit
+
+        mov bx , playerstep
 		sub [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+
+        reach_left_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		bridgetoend: jmp toend
-		bridgetoright: jmp right
-		bridgetodown: jmp down
-		UP:mov bx , playerstep
+		
+        UP:
+        mov bx, [si+2]
+        cmp bx , 25
+        jb reach_up_limit
+        
+        mov bx , playerstep
 		sub [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        
+        reach_up_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		down:mov bx , playerstep
+
+		down:
+        mov bx, [si+2]
+        cmp bx , 140
+        ja reach_down_limit 
+        
+        mov bx , playerstep
 		add [si + 2] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+        
+        reach_down_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		jmp toend
-		right:mov bx , playerstep
+
+		right:
+        mov bx, [si]
+        cmp bx , 135
+        ja reach_right_limit
+
+        mov bx , playerstep
 		add [si] , bx
-		drawrect  [si] , [si+2] , 20 , playerheight , 05h
+
+        reach_right_limit:
+		;drawrect  [si] , [si+2] , 20 , playerheight , 05h
 		toend:
 
 endm Movplayer2
@@ -520,9 +612,16 @@ endm clearplayer1barrier
 
 ;*************************
 deleteBulletsShoubra Macro Xbullet,Ybullet
-
+    local lllk,lllk2
 	pushall
-        mov bx,player2bullets
+    mov bx , Xbullet
+    mov ax , [bx]
+    mov bx , ybullet
+    mov cx , [bx]
+
+    drawrect ax,cx,5,2,0h ;delete bullet from screen
+
+    mov bx,player2bullets
 	mov di,offset player2bulletx
 	
 	mov ax , bx
@@ -537,7 +636,7 @@ deleteBulletsShoubra Macro Xbullet,Ybullet
 	cmp di,ax
 	jnz lllk
 	
-mov bx,player2bullets
+    mov bx,player2bullets
 	mov di,offset player2bullety
 	mov ax , bx
 	add ax,di
@@ -681,3 +780,298 @@ prepareplayer2barrierCoordinates macro
         add al, [si+2] ;player y coordinate
         mov temp2, ax
 ENDM
+;-----------------------------
+
+
+clear_screen macro 
+    pushall
+    mov ax,0600h
+    mov bh,0
+    mov cx,0
+    mov dx,184fh
+    int 10h 
+    popall
+endm clear_screen
+;***************************
+ req_rec_mac macro 
+  local request_received_loop , not_accepted 
+
+  clear_screen
+  ;reset_cursor
+
+  showmessage other_player_name
+  showmessage play_req_mes
+  request_received_loop: 
+
+  mov ah,1
+  int 16h
+ 
+  
+  jz request_received_loop
+  
+
+  mov ah,0
+  int 16h
+  mov send_VALUE, al
+  call send_data_proc
+
+  cmp al , 'y' ; request got accepted
+  je accepted1
+  clear_screen
+  jmp far ptr mainmenu_loop
+
+  accepted1:
+  mov al, 1
+  mov leftPlayer ,al
+   clear_screen
+  jmp  game_loop
+
+endm req_rec_mac
+
+;*******************************
+
+ req_sent_mac macro
+ clear_screen
+ ;reset_cursor
+ showmessage other_player_name
+ showmessage play_req_mes_wait
+
+ request_sent_loop:
+
+ call receive_data_proc
+ mov al,received_VALUE
+ cmp al , '-' ;'-' is empty receive value char
+ je request_sent_loop
+ 
+ cmp al , 'y' ; request got accepted
+ jne not_accepted
+ mov al, 0
+ mov leftPlayer ,al
+ clear_screen
+ jmp far ptr game_loop
+ 
+ not_accepted:
+ clear_screen
+ jmp far ptr mainmenu_loop
+ 
+ 
+ endm req_sent_mac 
+
+; ;**************************************
+; request_received_mac macro
+; local request_received_loop , not_accepted
+; 
+; request_received_loop:
+; mov ah,1
+; int 16h
+; 
+; jnz exist2
+; jmp request_received_loop
+; exist2:
+; 
+; mov ah,0
+; int 16h
+; mov send_VALUE, al
+; call send_data_proc
+; 
+; cmp al , 'y' ; request got accepted
+; jne not_accepted1
+; mov al, 1
+; mov leftPlayer ,al
+; jmp  game_loop
+; 
+; not_accepted1:
+; jmp  mainmenu_loop
+; 
+; 
+; endm request_received_mac 
+
+chat_req_rec macro 
+  local request_received_loop , not_accepted ,accepted1
+
+  clear_screen
+  ;reset_cursor
+
+  showmessage other_player_name
+  showmessage chat_req_mes
+  request_received_loop: 
+
+  mov ah,1
+  int 16h
+ 
+  
+  jz request_received_loop
+  
+
+  mov ah,0
+  int 16h
+  mov send_VALUE, al
+  call send_data_proc
+
+  cmp al , 'y' ; request got accepted
+  je accepted1
+  clear_screen
+  jmp far ptr mainmenu_loop
+
+  accepted1:
+  ;mov al, 1
+  ;mov leftPlayer ,al
+   clear_screen
+  call chat_stuff;;;--------------------- chat loop
+jmp mainmenu_loop
+endm chat_req_rec
+
+
+chat_req_sent macro
+local request_sent_loop,not_accepted
+
+ clear_screen
+ ;reset_cursor
+ showmessage other_player_name
+ showmessage chat_req_mes_wait
+
+ request_sent_loop:
+
+ call receive_data_proc
+ mov al,received_VALUE
+ cmp al , '-' ;'-' is empty receive value char
+ je request_sent_loop
+ 
+ cmp al , 'y' ; request got accepted
+ jne not_accepted
+ 
+ clear_screen
+ call chat_stuff ;------------- chat loop 
+ jmp mainmenu_loop
+ not_accepted:
+ clear_screen
+ jmp far ptr mainmenu_loop 
+ 
+ 
+ endm req_sent_mac 
+
+reset_cursor macro
+push ax
+push dx
+
+mov ah,2
+mov dx,0
+int 10h
+
+pop dx
+pop ax
+endm reset_cursor
+
+;----------------------------------------------
+
+check_for_win macro
+
+chk_hlth_left
+chk_hlth_right
+
+
+
+endm check_for_win 
+;----------------------------------------------
+chk_hlth_left macro
+local i_lost,other_lost,not_game_over
+
+
+
+mov bx,offset firsthealthbar
+add bx,4
+mov ax,[bx]
+cmp ax,5
+jae not_game_over
+;left player lost 
+mov al , 1
+cmp leftPlayer,al
+je i_lost
+mov bh ,other_score 
+inc bh
+mov other_score , bh
+jmp other_lost
+
+i_lost:
+
+mov bh ,my_score 
+inc bh
+mov my_score , bh
+
+other_lost:
+
+jmp far ptr game_over
+not_game_over:
+
+
+endm chk_hlth_left
+
+;******************************************
+
+chk_hlth_right macro
+local i_lost,other_lost,not_game_over
+
+
+mov bx,offset secondhealthbar
+add bx,4
+mov ax,[bx]
+
+cmp ax,5
+jae not_game_over
+;right player lost
+mov al , 0
+cmp leftPlayer,al
+je i_lost
+mov bh ,other_score 
+inc bh
+mov other_score , bh
+jmp other_lost
+
+i_lost:
+
+mov bh ,my_score 
+inc bh
+mov my_score , bh
+
+other_lost:
+
+
+jmp far ptr game_over
+not_game_over:
+
+
+endm chk_hlth_right 
+
+
+
+
+
+SCROL               MACRO UPPER_LEFT_X, UPPER_LEFT_Y, LOWER_RIGHT_X, LOWER_RIGHT_Y
+                    push dx
+
+                    mov ah,6       ; function 6
+                    mov al,1        ; scroll by 1 line    
+                    mov bh,0       ; normal video attribute         
+                    mov ch, UPPER_LEFT_Y      ; upper left Y
+                    mov cl, UPPER_LEFT_X        ; upper left X
+                    mov dh, LOWER_RIGHT_Y     ; lower right Y
+                    mov dl, LOWER_RIGHT_X      ; lower right X 
+                    int 10h 
+
+                    pop dx
+
+                    mov ah,3h 
+                    mov bh,0h 
+                    int 10h
+
+                    dec dh
+
+                    mov ah, 2
+                    int 10h
+
+                    call disp_names    
+                    ENDM
+
+
+
+
