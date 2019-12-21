@@ -131,6 +131,8 @@ yBulletTop dw 0
 yBulletBottom dw 0
 lenBetweenGB dw 0 
 
+end_game db 0
+
 
 temp1 dw ?
 temp2 dw ?
@@ -462,6 +464,14 @@ pop ax
     call Collesion
     ;skip2:
     ;    inc cx
+    mov cl , 1
+    cmp end_game , cl
+    jne dont_end_game
+
+    jmp far ptr game_over
+
+    dont_end_game:
+
 jmp game_loop
 
 hlt
@@ -909,7 +919,7 @@ key_listener proc
     call barrier2
     dontbarrier2:
     
-    ;nothing_pressed:
+     ;--------------------------ingame chat------------------------
 
     cmp al, 10h ; q char 
     jne dontchat
@@ -920,6 +930,18 @@ key_listener proc
     jne dontchat1
     call ingame_chat_stuff
     dontchat1:
+
+    ;--------------------------Exit game------------------------
+    cmp al, 1h ; q char 
+    jne dontexit
+    call end_current_game
+    dontexit:
+
+    cmp ah, 1h ; q char 
+    jne dontexit1
+    call end_current_game
+    dontexit1:
+
 
     mov al,0
 ret
@@ -1527,6 +1549,11 @@ mov bx,0
 mov player1bullets,bx ;model small problem
 mov player2bullets,bx
 
+push bx
+mov bl , 0 
+mov end_game ,bl 
+pop bx
+
 ret
 reset_game endp 
 
@@ -1858,11 +1885,16 @@ ret
 chat_stuff endp 
 ;--------------------------------
 ingame_chat_stuff proc
+
+pushall 
+
 clear_screen
 call set_ingame_var
 reset_cursor
 call main_chat_proc
 clear_screen
+
+popall
 ret
 ingame_chat_stuff endp 
 
@@ -1928,6 +1960,20 @@ mov kill_me_lower, al
 popall
 ret 
 set_main_chat endp
+
+;------------------------------------
+
+end_current_game proc
+push ax
+
+mov al , 1
+mov end_game,al
+
+pop ax
+ret
+end_current_game endp 
+
+
 
 
 end main
