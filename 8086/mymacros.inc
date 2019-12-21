@@ -396,7 +396,7 @@ mov si , offset player2
         jbe dontclear1laser_m
 
         prepareplayer2laserCoordinates
-        drawsolidrect temp1, temp2, laserlength, laserthickness, 0h ;claer laser upon mvement
+        drawsolidrect temp1, temp2, temp3, temp4, 0h ;claer laser upon mvement
         ;drawsolidrect  [si] , [si+2] , laserlength , playerheight , 0h
 		;mov ah,0
         ;int 16h
@@ -458,7 +458,7 @@ drawrect  [si] , [si+2] , 20 , playerheight , 0h ;clear player upon movement
         jbe dontclear2laser_m
 
         prepareplayer1laserCoordinates
-        drawsolidrect  temp1, temp2, laserlength , laserthickness , 0h ;clear laser upon movement
+        drawsolidrect  temp1, temp2, temp3 , temp4 , 0h ;clear laser upon movement
 
 dontclear2laser_m:
         pop ax
@@ -565,11 +565,15 @@ ENDM   deleteBulletsShoubra
 
 ;************************
 prepareplayer1laserCoordinates macro
+    local dontclip1
+
     mov si, offset player1
     push ax
+
     mov ax, [si]
     add ax, playerwidth
     mov temp1, ax
+    
     ;laserYcoordinate = playerY + playerheight/2 - laserheight/2 = (playerheight-laserheight)/2 + playerY
     mov ax, playerheight
     sub ax, laserthickness
@@ -578,11 +582,31 @@ prepareplayer1laserCoordinates macro
     mov ah, 0
     add al, [si+2] ;player y coordinate
     mov temp2, ax
+
+    mov ax, laserlength
+    mov temp3, ax
+
+    mov ax, laserthickness
+    mov temp4, ax
+
+    cmp clip_laser1, 0
+    je dontclip1
+
+    ;new_length = opponent's_barrier_x_pos - laser_x_pos = player2.x - barrierwidth - temp1
+    mov si, offset player2
+    mov ax, [si]
+    sub ax, barrierwidth
+    sub ax, temp1
+    mov temp3, ax
+
+    dontclip1:
     pop ax
 ENDM
 
 ;************************
 prepareplayer2laserCoordinates macro
+    local dontclip2
+
     mov si, offset player2
     push ax
     mov ax, [si]
@@ -596,6 +620,31 @@ prepareplayer2laserCoordinates macro
     mov ah, 0
     add al, [si+2] ;player y coordinate
     mov temp2, ax
+
+    mov ax, laserlength
+    mov temp3, ax
+
+    mov ax, laserthickness
+    mov temp4, ax
+
+    cmp clip_laser2, 0
+    je dontclip2
+
+    ;new_length = player2.x - player1.x - barrierwidth - playerwidth
+    mov ax, [si]
+    mov si, offset player1
+    sub ax, [si]
+    sub ax, barrierwidth
+    sub ax, playerwidth
+    mov temp3, ax
+
+    ;new_laserx_coordinate = prev_x_laser + laserlength - new_length = temp1 + laserlength - temp3
+    mov ax, temp1
+    add ax, laserlength
+    sub ax, temp3
+    mov temp1, ax
+
+    dontclip2:
     pop ax
 ENDM
 

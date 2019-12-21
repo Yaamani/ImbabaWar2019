@@ -26,6 +26,10 @@ laserHitDecreaseHealthDelay equ 15
 laser1HitDecreaseHealthCounter db 0
 laser2HitDecreaseHealthCounter db 0
 
+clip_laser1 db 0 ; Intended to be a boolean val
+clip_laser2 db 0 ; Intended to be a boolean val
+
+
 player1bullets dw 0
 player1bulletx dw 200 dup(0)
 player1bullety dw 200 dup(0)
@@ -42,7 +46,7 @@ laser_on_delay equ 255
 barrier_on_delay equ 255
 
 laserthickness equ 3
-laserlength equ 130
+laserlength equ 140
 
 barrierwidth equ 4
 barrierheight equ 25
@@ -893,7 +897,7 @@ jmp dont_drawlaser1
 
 drawlaser1:
 prepareplayer1laserCoordinates
-drawsolidrect temp1, temp2, laserlength, laserthickness, 04h
+drawsolidrect temp1, temp2, temp3, temp4, 04h
 
 push ax
 mov al, 0
@@ -912,7 +916,7 @@ cmp firstlaser_cleared, al
 je dontclear1
 
 prepareplayer1laserCoordinates
-drawsolidrect temp1, temp2, laserlength, laserthickness, 0h
+drawsolidrect temp1, temp2, temp3, temp4, 0h
 
 mov firstlaser_cleared, al
 
@@ -945,7 +949,7 @@ jmp dont_drawlaser2
 
 drawlaser2:
 prepareplayer2laserCoordinates
-drawsolidrect temp1, temp2, laserlength, laserthickness, 04h
+drawsolidrect temp1, temp2, temp3, temp4, 04h
 
 push ax
 mov al, 0
@@ -966,7 +970,7 @@ cmp secondlaser_cleared, al
 je dontclear2
 
 prepareplayer2laserCoordinates
-drawsolidrect temp1, temp2, laserlength, laserthickness, 0h
+drawsolidrect temp1, temp2, temp3, temp4, 0h
 mov secondlaser_cleared, al
 
 dontclear2:
@@ -1158,7 +1162,8 @@ Collision proc
     ret
 Collision endp
 ;--------------------------
-CheckOfCollision1 proc 
+CheckOfCollision1 proc
+
    pushall 
    mov ax,[bx+2]
    mov yGamerTop,ax
@@ -1184,7 +1189,6 @@ CheckOfCollision1 proc
     xchg dx, ax
     jmp continue
    
-
 
 barrier1_isnt_active:
    mov ax,[bx] ; player's x coordinate 
@@ -1263,6 +1267,8 @@ CheckOfCollision1 endp
 CheckLaserCollision1 proc 
    pushall 
 
+   	mov clip_laser1, 0
+
     mov al, 2
     cmp firstlaser_on_delay, al
     jbe outtlaser ; if opponent's laser isn't working
@@ -1303,9 +1309,10 @@ barrier1_isnt_active_laser:
    xchg dx,ax
 
 continuelaser:
-    mov lenBetweenGL,ax
-    mov ax,laserlength
-    cmp lenBetweenGL,ax
+    mov lenBetweenGL, ax
+    mov ax, laserlength
+	;drawsolidrect 150, 150, lenBetweenGL, laserthickness, 02h
+    cmp lenBetweenGL, ax
     jbe continueComapringLaser1
     
     jmp outtlaser
@@ -1338,7 +1345,7 @@ DecreaseHealthLaser:
 
     mov al, 2
     cmp secondbarrier_on_delay, al
-    jae outtlaser ;barrier_is_active
+    jae laser1clip ;barrier_is_active
     
     add laser1HitDecreaseHealthCounter, 1
     mov al, laserHitDecreaseHealthDelay
@@ -1348,8 +1355,9 @@ DecreaseHealthLaser:
     mov laser1HitDecreaseHealthCounter, 0
     mov si, offset secondhealthbar
     decprogbar laserHitAmountHealthbar
+    jmp outtlaser
     
- 
+
   ;debug
   ;mov cx,1
   ;mov bh,0
@@ -1359,7 +1367,8 @@ DecreaseHealthLaser:
   ;int 10h
 
   
-    
+laser1clip:
+    mov clip_laser1, 1
     
 outtlaser:
    
@@ -1471,6 +1480,9 @@ CheckOfCollision2 endp
 CheckLaserCollision2 proc
 
     pushall
+
+	mov clip_laser2, 0
+
     mov al, 2
     cmp secondlaser_on_delay, al
     jbe outtlaser2 ; if the oponent's laser isn't working
@@ -1491,36 +1503,46 @@ CheckLaserCollision2 proc
     jbe barrier2_isnt_active_laser
 
 ;barrier2_is_active_laser:
-    mov ax, [bx] ; player's x coordinate 
-    add ax, barrierwidth
-    mov dx, [di] ; laser's x coordinate
-    cmp ax, dx
-    jae abslutelenlaser2
-    sub dx, ax
-    xchg dx, ax
-    jmp continuelaser2
+    ;mov ax, [bx] ; player's x coordinate 
+    ;add ax, barrierwidth
+    ;mov dx, [di] ; laser's x coordinate
+    ;cmp ax, dx
+    ;jae abslutelenlaser2
+    ;sub dx, ax
+    ;xchg dx, ax
+    ;jmp continuelaser2
    
 
 barrier2_isnt_active_laser:
 
-   mov ax,[bx] ; player's x coordinate 
-   mov dx,[di] ; laser's x coordinate
-   cmp ax,dx
-   jae abslutelenlaser2
-   sub dx,ax
-   xchg dx,ax
+   ;mov ax,[bx] ; left player's x coordinate
+   ;add ax, playerwidth
+   ;;add ax, laserlength
+   ;mov dx,[di] ; laser's x coordinate
+   ;cmp ax,dx
+   ;jae abslutelenlaser2
+   ;sub dx,ax
+   ;xchg dx,ax
 
-   continuelaser2:
-     mov lenBetweenGL,ax
-     mov ax,playerwidth
-     cmp lenBetweenGL,ax
-     jbe continueComapringlaser2
+   mov ax, player1
+   add ax, playerwidth
+   mov bx, player2
+   sub bx, ax
+   cmp bx, laserlength
+   ja outtlaser2
 
-     jmp outtlaser2
+   ;continuelaser2:
+   ;  mov lenBetweenGL, ax
+	; drawsolidrect 150, 150, lenBetweenGL, laserthickness, 02h
+   ;  mov ax, laserlength
+   ;  cmp lenBetweenGL, ax
+   ;  jbe continueComapringlaser2
+;
+   ;  jmp outtlaser2
 
-abslutelenlaser2: ; absulte length 
-   sub ax,dx
-   jmp continuelaser2    
+;abslutelenlaser2: ; absulte length 
+   ;sub ax,dx
+   ;jmp continuelaser2    
 
 continueComapringlaser2:
 
@@ -1546,7 +1568,7 @@ continueComapringlaser22:
 DecreaseHealthLaser2:    
     mov al, 2
     cmp firstbarrier_on_delay, al
-    jae outtlaser2 ;barrier_is_active
+    jae laser2clip ;barrier_is_active
 
     add laser2HitDecreaseHealthCounter, 1
     mov al, laserHitDecreaseHealthDelay
@@ -1556,7 +1578,7 @@ DecreaseHealthLaser2:
     mov laser2HitDecreaseHealthCounter, 0
     mov si, offset firsthealthbar
     decprogbar laserHitAmountHealthbar
-    
+    jmp outtlaser2
 
     ;mov bx,player2bullets
     ;sub di,bx
@@ -1568,7 +1590,9 @@ DecreaseHealthLaser2:
   ;mov al,44h
   ;mov bl,4
   ;int 10h
-    
+
+   laser2clip:
+    mov clip_laser2, 1 
     
 outtlaser2:
    popall
