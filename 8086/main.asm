@@ -20,6 +20,11 @@ playerwidth equ 20
 playercolor equ 5h
 
 bulletHitAmountHealthbar equ 1
+laserHitAmountHealthbar equ 1
+laserHitDecreaseHealthDelay equ 15
+
+laser1HitDecreaseHealthCounter db 0
+laser2HitDecreaseHealthCounter db 0
 
 player1bullets dw 0
 player1bulletx dw 200 dup(0)
@@ -37,7 +42,7 @@ laser_on_delay equ 255
 barrier_on_delay equ 255
 
 laserthickness equ 3
-laserlength equ 150
+laserlength equ 130
 
 barrierwidth equ 4
 barrierheight equ 25
@@ -74,8 +79,8 @@ secondbarrier_cleared db 1 ;Intended to be a boolean val
 ;**********************
 
 ;---width and len
-widthG equ  15
-lenG   equ  20
+widthG equ  playerheight
+lenG   equ  playerwidth
 widthB equ  2
 lenB   equ  5 
 
@@ -85,11 +90,16 @@ yGamerBottom dw 0
 
 yBulletTop dw 0
 yBulletBottom dw 0
+yLaserTop dw 0
+yLaserBottom dw 0
 lenBetweenGB dw 0 
+lenBetweenGL dw 0 
 
 
 temp1 dw ?
 temp2 dw ?
+temp3 dw ?
+temp4 dw ?
 
 
 .code         
@@ -882,8 +892,8 @@ ja drawlaser1
 jmp dont_drawlaser1
 
 drawlaser1:
-mov si, offset player1
-drawsolidrect [si], [si+2], laserlength, laserthickness, 04h
+prepareplayer1laserCoordinates
+drawsolidrect temp1, temp2, laserlength, laserthickness, 04h
 
 push ax
 mov al, 0
@@ -894,7 +904,6 @@ ret
 
 dont_drawlaser1:
 mov firstlaser_on_delay, 1
-mov si, offset player1
 
 ;claer the laser
 push ax
@@ -902,7 +911,9 @@ mov al, 1
 cmp firstlaser_cleared, al
 je dontclear1
 
-drawsolidrect [si], [si+2], laserlength, laserthickness, 0h
+prepareplayer1laserCoordinates
+drawsolidrect temp1, temp2, laserlength, laserthickness, 0h
+
 mov firstlaser_cleared, al
 
 dontclear1:
@@ -933,13 +944,8 @@ ja drawlaser2
 jmp dont_drawlaser2
 
 drawlaser2:
-mov si, offset player2
-push ax
-mov ax, [si]
-sub ax, 130
-mov temp1, ax
-pop ax
-drawsolidrect temp1, [si+2], laserlength, laserthickness, 04h
+prepareplayer2laserCoordinates
+drawsolidrect temp1, temp2, laserlength, laserthickness, 04h
 
 push ax
 mov al, 0
@@ -951,12 +957,7 @@ ret
 dont_drawlaser2:
 mov secondlaser_on_delay, 2
 
-mov si, offset player2
-push ax
-mov ax, [si]
-sub ax, 130
-mov temp1, ax
-pop ax
+
 
 ;claer the laser
 push ax
@@ -964,7 +965,8 @@ mov al, 1
 cmp secondlaser_cleared, al
 je dontclear2
 
-drawsolidrect temp1, [si+2], laserlength, laserthickness, 0h
+prepareplayer2laserCoordinates
+drawsolidrect temp1, temp2, laserlength, laserthickness, 0h
 mov secondlaser_cleared, al
 
 dontclear2:
@@ -1108,11 +1110,23 @@ Collision proc
         sub cx,2
         cmp cx,0
     ja LForRightSide 
+    
+    
     quit1:
+    
+    prepareplayer1laserCoordinates
+    mov di,offset temp1 ; laser's x coordinate
+    mov si,offset temp2 ; laser's y coordinate
+    mov bx,offset player2
+
+    call CheckLaserCollision1
+
     mov cx,player2bullets
     cmp cx,0
     jne notempty2
     jmp quit2
+
+
     notempty2:
     mov di,offset player2bulletx
     mov si,offset player2bullety
@@ -1120,7 +1134,7 @@ Collision proc
     
      
      
-    ;loop for all bullets out of gamer2
+    ; loop for all bullets out of gamer2
     LForLeftSide:
            
         call CheckOfCollision2 
@@ -1132,6 +1146,14 @@ Collision proc
     ja LForLeftSide
     
     quit2:
+
+    prepareplayer2laserCoordinates
+    mov di,offset temp1 ; laser's x coordinate
+    mov si,offset temp2 ; laser's y coordinate
+    mov bx,offset player1
+
+    call CheckLaserCollision2
+
     popall
     ret
 Collision endp
@@ -1147,21 +1169,38 @@ CheckOfCollision1 proc
    mov yBulletTop,ax
    add ax,widthB
    mov yBulletBottom,ax
+
+    mov al, 2
+    cmp secondbarrier_on_delay, al
+    jbe barrier1_isnt_active 
+
+;barrier1_is_active
+    mov ax, [bx] ; player's x coordinate 
+    sub ax, barrierwidth
+    mov dx, [di] ; bullet's x coordinate
+    cmp ax, dx
+    jae abslutelen
+    sub dx, ax
+    xchg dx, ax
+    jmp continue
    
-   mov ax,[bx]
-   mov dx,[di]
+
+
+barrier1_isnt_active:
+   mov ax,[bx] ; player's x coordinate 
+   mov dx,[di] ; bullet's x coordinate
    cmp ax,dx
    jae abslutelen
    sub dx,ax
    xchg dx,ax
 
-   continue:
-     mov lenBetweenGB,ax
-     mov ax,widthB
-     cmp lenBetweenGB,ax
-      jbe continueComapring
-      
-     jmp outt
+continue:
+    mov lenBetweenGB,ax
+    mov ax,widthB
+    cmp lenBetweenGB,ax
+    jbe continueComapring
+    
+    jmp outt
 
 abslutelen:  ; abslute length
    sub ax,dx
@@ -1188,13 +1227,19 @@ continueComapringg2:
      jmp outt   
 
 DecreaseHealth:
+
+    mov bx,offset player1bulletx
+    sub di,bx
+    deletebullet1 
+
+    mov al, 2
+    cmp secondbarrier_on_delay, al
+    jae outt ;barrier1_is_active
     
     mov si , offset secondhealthbar
     decprogbar bulletHitAmountHealthbar
     
-    mov bx,offset player1bulletx
-    sub di,bx
-    deletebullet1 
+    
  
   ;debug
   ;mov cx,1
@@ -1213,6 +1258,115 @@ outt:
    ret
 CheckOfCollision1 endp
 
+
+;--------------------------
+CheckLaserCollision1 proc 
+   pushall 
+
+    mov al, 2
+    cmp firstlaser_on_delay, al
+    jbe outtlaser ; if opponent's laser isn't working
+
+
+   mov ax,[bx+2]
+   mov yGamerTop,ax
+   add ax,widthG  
+   mov yGamerBottom,ax 
+   
+   mov ax, [si] ; laser's y coordinate
+   mov yLaserTop, ax
+   add ax, laserthickness 
+   mov yLaserBottom, ax
+
+    mov al, 2
+    cmp secondbarrier_on_delay, al
+    jbe barrier1_isnt_active_laser
+
+;barrier1_is_active_laser:
+    mov ax, [bx] ; player's x coordinate 
+    sub ax, barrierwidth
+    mov dx, [di] ; laser's x coordinate
+    cmp ax, dx
+    jae abslutelenlaser
+    sub dx, ax
+    xchg dx, ax
+    jmp continuelaser
+   
+
+
+barrier1_isnt_active_laser:
+   mov ax,[bx] ; player's x coordinate 
+   mov dx,[di] ; laser's x coordinate
+   cmp ax,dx
+   jae abslutelenlaser
+   sub dx,ax
+   xchg dx,ax
+
+continuelaser:
+    mov lenBetweenGL,ax
+    mov ax,laserlength
+    cmp lenBetweenGL,ax
+    jbe continueComapringLaser1
+    
+    jmp outtlaser
+
+abslutelenlaser:  ; abslute length
+   sub ax,dx
+   jmp continuelaser    
+
+continueComapringLaser1:
+   mov ax,yLaserTop
+   mov dx,yLaserBottom
+   
+   cmp ax,yGamerTop
+     ja continueComapringglaser2
+     je DecreaseHealthLaser
+   cmp dx,yGamerTop
+     ja continueComapringglaser2       
+     je DecreaseHealthLaser
+     jmp outtlaser
+continueComapringglaser2:
+
+    cmp dx,yGamerBottom
+     jbe  DecreaseHealthLaser
+     
+   cmp ax,yGamerBottom
+     jbe DecreaseHealthLaser
+     jmp outtlaser   
+
+DecreaseHealthLaser:
+
+    mov al, 2
+    cmp secondbarrier_on_delay, al
+    jae outtlaser ;barrier_is_active
+    
+    add laser1HitDecreaseHealthCounter, 1
+    mov al, laserHitDecreaseHealthDelay
+    cmp laser1HitDecreaseHealthCounter, al
+    jb outtlaser
+    
+    mov laser1HitDecreaseHealthCounter, 0
+    mov si, offset secondhealthbar
+    decprogbar laserHitAmountHealthbar
+    
+ 
+  ;debug
+  ;mov cx,1
+  ;mov bh,0
+  ;mov ah,9
+  ;mov al,44h
+  ;mov bl,4
+  ;int 10h
+
+  
+    
+    
+outtlaser:
+   
+   popall
+   ret
+CheckLaserCollision1 endp
+
 CheckOfCollision2 proc
 
     pushall
@@ -1226,8 +1380,25 @@ CheckOfCollision2 proc
    add ax,widthB
    mov yBulletBottom,ax
    
-   mov ax,[bx]
-   mov dx,[di]
+    mov al, 2
+    cmp firstbarrier_on_delay, al
+    jbe barrier2_isnt_active 
+
+;barrier2_is_active
+    mov ax, [bx] ; player's x coordinate 
+    add ax, barrierwidth
+    mov dx, [di] ; bullet's x coordinate
+    cmp ax, dx
+    jae abslutelen
+    sub dx, ax
+    xchg dx, ax
+    jmp continue2
+   
+
+barrier2_isnt_active:
+
+   mov ax,[bx] ; player's x coordinate 
+   mov dx,[di] ; bullet's x coordinate
    cmp ax,dx
    jae abslutelen2
    sub dx,ax
@@ -1235,9 +1406,10 @@ CheckOfCollision2 proc
 
    continue2:
      mov lenBetweenGB,ax
-     mov ax,widthG
+     mov ax,playerwidth
      cmp lenBetweenGB,ax
-      jbe continueComapring2
+     jbe continueComapring2
+     
      jmp outt2
 
 abslutelen2: ;absulte length 
@@ -1266,16 +1438,20 @@ continueComapring22:
      jmp outt2   
 
 DecreaseHealth2:
+    deleteBulletsShoubra di,si 
     
-    push si
+    mov al, 2
+    cmp firstbarrier_on_delay, al
+    jae outt2 ;barrier1_is_active
+
+    ;push si
     mov si , offset firsthealthbar
     decprogbar bulletHitAmountHealthbar
-    
+    ;pop si
+
     ;mov bx,player2bullets
     ;sub di,bx
     ;deletebullet2
-    pop si
-    deleteBulletsShoubra di,si 
 
   ;mov cx,1
   ;mov bh,0
@@ -1290,6 +1466,115 @@ outt2:
    ret
    
 CheckOfCollision2 endp
+
+;-------------------------
+CheckLaserCollision2 proc
+
+    pushall
+    mov al, 2
+    cmp secondlaser_on_delay, al
+    jbe outtlaser2 ; if the oponent's laser isn't working
+
+
+   mov ax,[bx+2]
+   mov yGamerTop,ax
+   add ax,widthG  
+   mov yGamerBottom,ax 
+   
+   mov ax, [si] ; laser's y coordinate
+   mov yLaserTop, ax
+   add ax, laserthickness 
+   mov yLaserBottom, ax
+   
+    mov al, 2
+    cmp firstbarrier_on_delay, al
+    jbe barrier2_isnt_active_laser
+
+;barrier2_is_active_laser:
+    mov ax, [bx] ; player's x coordinate 
+    add ax, barrierwidth
+    mov dx, [di] ; laser's x coordinate
+    cmp ax, dx
+    jae abslutelenlaser2
+    sub dx, ax
+    xchg dx, ax
+    jmp continuelaser2
+   
+
+barrier2_isnt_active_laser:
+
+   mov ax,[bx] ; player's x coordinate 
+   mov dx,[di] ; laser's x coordinate
+   cmp ax,dx
+   jae abslutelenlaser2
+   sub dx,ax
+   xchg dx,ax
+
+   continuelaser2:
+     mov lenBetweenGL,ax
+     mov ax,playerwidth
+     cmp lenBetweenGL,ax
+     jbe continueComapringlaser2
+
+     jmp outtlaser2
+
+abslutelenlaser2: ; absulte length 
+   sub ax,dx
+   jmp continuelaser2    
+
+continueComapringlaser2:
+
+   mov ax,yLaserTop
+   mov dx,yLaserBottom
+ 
+   cmp ax,yGamerTop
+     ja continueComapringlaser22
+     je DecreaseHealthLaser2
+   cmp dx,yGamerTop
+     ja continueComapringlaser22       
+     je DecreaseHealthLaser2
+     jmp outtlaser2
+continueComapringlaser22:
+
+    cmp dx,yGamerBottom
+     jbe  DecreaseHealthLaser2
+     
+   cmp ax,yGamerBottom
+     jbe DecreaseHealthLaser2
+     jmp outtlaser2   
+
+DecreaseHealthLaser2:    
+    mov al, 2
+    cmp firstbarrier_on_delay, al
+    jae outtlaser2 ;barrier_is_active
+
+    add laser2HitDecreaseHealthCounter, 1
+    mov al, laserHitDecreaseHealthDelay
+    cmp laser2HitDecreaseHealthCounter, al
+    jb outtlaser2
+    
+    mov laser2HitDecreaseHealthCounter, 0
+    mov si, offset firsthealthbar
+    decprogbar laserHitAmountHealthbar
+    
+
+    ;mov bx,player2bullets
+    ;sub di,bx
+    ;deletebullet2
+
+  ;mov cx,1
+  ;mov bh,0
+  ;mov ah,9
+  ;mov al,44h
+  ;mov bl,4
+  ;int 10h
+    
+    
+outtlaser2:
+   popall
+   ret
+   
+CheckLaserCollision2 endp
 ;***************************
 
 a3del_elgamer proc
