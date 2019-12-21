@@ -506,7 +506,7 @@ pop ax
     cmp end_game , cl
     jne dont_end_game
 
-    jmp far ptr game_over
+    ;jmp far ptr game_over
 
     dont_end_game:
 
@@ -904,7 +904,7 @@ key_listener proc
     movplayer1
     no_player1:
     ;--------------------------check Bullets------------------------    
-    cmp al,2Ch ;z scan code
+    cmp al,39h ;space scan code
     jne dontfire1
     
     mov dl, left_player_fire_limit
@@ -916,7 +916,7 @@ key_listener proc
     ;cmp cx,0fff0h
     ;jb skip2
     dontfire1:
-    cmp ah,2Ch ;z scan code
+    cmp ah,39h ;space scan code
     jne dontfire2
     
     mov bl,right_player_fire_limit
@@ -928,36 +928,42 @@ key_listener proc
     
     dontfire2:
     ;--------------------------check Laser------------------------
+    mov al, left_player_action
+    mov ah, right_player_action
 
-    cmp al, 'r'
+    cmp ah,2ch
     jne dontlaser1
     
     
     call laser1
 
     dontlaser1:
-    cmp al, 'e'
+    cmp al, 2ch
     jne dontlaser2
 
-    ;call laser2
+    call laser2
     dontlaser2:
 
     ;--------------------------check barrier------------------------
+	mov al, left_player_action
+    mov ah, right_player_action
 
-    cmp al, 'k'
+    cmp ah, 2eh
     jne dontbarrier1
     
     
     call barrier1
 
     dontbarrier1:
-    cmp al, 'q'
+    cmp al, 2eh
     jne dontbarrier2
 
     call barrier2
     dontbarrier2:
     
      ;--------------------------ingame chat------------------------
+	 mov al, left_player_action
+    mov ah, right_player_action
 
     cmp al, 10h ; q char 
     jne dontchat
@@ -1463,7 +1469,7 @@ continue:
 
 abslutelen:  ; abslute length
    sub ax,dx
-   jmp continue3    
+   jmp continue    
 
 continueComapring:
    mov ax,yBulletTop
@@ -1704,13 +1710,13 @@ continueComapring22:
      jmp outt2   
 
 DecreaseHealth2:
-    deleteBulletsShoubra di,si 
+    ;deleteBulletsShoubra di,si 
     
     mov al, 2
     cmp firstbarrier_on_delay, al
     jae outt2 ;barrier1_is_active
 
-    ;push si
+    push si
     mov si , offset firsthealthbar
     decprogbar bulletHitAmountHealthbar
     pop si
